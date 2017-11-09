@@ -1,0 +1,7 @@
+/.idea/*
+!/.idea/copyright
+!/.idea/inspectionProfiles
+!/.idea/codeStyles
+!/.idea/checkstyle-idea.xml
+/target
+*.iml

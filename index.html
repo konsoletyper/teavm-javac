@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <script src="target/generated/js/teavm/runtime.js"></script>
+    <script src="target/generated/js/teavm/classes.js"></script>
+  </head>
+  <body onload="main()">
+    <div>
+      <textarea cols="120" rows="40" id="source-code">
+public class Hello {
+    public static void main(String[] args) {
+        System.out.println("Hello, world!");
+    }
+}
+      </textarea>
+    </div>
+    <div>
+      <button id="compile-button">Compile</button>
+    </div>
+  </body>
+</html>
