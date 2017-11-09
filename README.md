@@ -2,6 +2,8 @@ An offline Java compiler that runs in the browser.
 
 This is merely javac from OpenJDK compiled with [TeaVM](http://teavm.org).
 
+See live example [here](http://teavm.org/sandbox/).
+
 **Warning**: this project is in its very early stage.
 
 ## Building

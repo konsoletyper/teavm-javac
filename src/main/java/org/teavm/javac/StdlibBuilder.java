@@ -29,7 +29,7 @@ public final class StdlibBuilder {
     }
 
     public static void main(String[] args) throws IOException {
-        ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+        ClassLoader classLoader = StdlibBuilder.class.getClassLoader();
         URL url = classLoader.getResource(RELEVANT_RESOURCE);
         if (url == null) {
             System.err.println("Stdlib was not found in classpath");
@@ -41,7 +41,6 @@ public final class StdlibBuilder {
         File outFile = new File(args[0] + "/data.zip");
         outFile.getParentFile().mkdirs();
 
-        StringBuilder catalog = new StringBuilder();
         try (ZipInputStream zipInput = new ZipInputStream(new FileInputStream(jarFile));
                 ZipOutputStream zipOutput = new ZipOutputStream(new FileOutputStream(outFile))) {
             while (true) {
@@ -69,15 +68,9 @@ public final class StdlibBuilder {
                     ZipEntry outputEntry = new ZipEntry(entry.getName());
                     zipOutput.putNextEntry(outputEntry);
                     zipOutput.write(classWriter.toByteArray());
-                    catalog.append(entry.getName()).append('\n');
                 }
                 zipInput.closeEntry();
             }
-        }
-
-        File catalogFile = new File(args[0], "catalog.txt");
-        try (Writer writer = new OutputStreamWriter(new FileOutputStream(catalogFile), "UTF-8")) {
-            writer.write(catalog.toString());
         }
     }
 

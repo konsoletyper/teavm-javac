@@ -56,14 +56,6 @@
       <artifactId>asm-debug-all</artifactId>
       <version>5.2</version>
     </dependency>
-
-    <dependency>
-      <groupId>com.sun</groupId>
-      <artifactId>tools</artifactId>
-      <version>1.8.0</version>
-      <scope>system</scope>
-      <systemPath>${env.JAVA_HOME}/lib/tools.jar</systemPath>
-    </dependency>
   </dependencies>
 
   <profiles>
@@ -90,7 +82,7 @@
                          dest="${project.build.directory}/langtools/${jdk.langtools.revision}.zip"
                          usetimestamp="true"/>
                     <unzip src="${project.build.directory}/langtools/${jdk.langtools.revision}.zip"
-                           dest="${project.build.directory}/langtools/${jdk.langtools.revision}" />
+                           dest="${project.build.directory}/langtools}" />
                   </tasks>
                 </configuration>
                 <goals>
@@ -111,6 +103,7 @@
         <artifactId>build-helper-maven-plugin</artifactId>
         <executions>
           <execution>
+            <id>add-langtools-src</id>
             <phase>generate-sources</phase>
             <goals>
               <goal>add-source</goal>
@@ -119,6 +112,20 @@
               <sources>
                 <source>${project.build.directory}/langtools/langtools-${jdk.langtools.revision}/src/share/classes</source>
               </sources>
+            </configuration>
+          </execution>
+          <execution>
+            <id>add-classlib-resources</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>add-resource</goal>
+            </goals>
+            <configuration>
+              <resources>
+                <resource>
+                  <directory>${project.build.directory}/generated-resources/stdlib/</directory>
+                </resource>
+              </resources>
             </configuration>
           </execution>
         </executions>
@@ -146,6 +153,27 @@
       </plugin>
 
       <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.6.0</version>
+        <executions>
+          <execution>
+            <id>generate-classlib</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <phase>process-classes</phase>
+            <configuration>
+              <mainClass>org.teavm.javac.StdlibBuilder</mainClass>
+              <arguments>
+                <argument>${project.build.directory}/generated-resources/stdlib/stdlib</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
         <groupId>org.teavm</groupId>
         <artifactId>teavm-maven-plugin</artifactId>
         <version>${teavm.version}</version>
@@ -159,7 +187,6 @@
               <targetDirectory>${project.build.directory}/generated/js/teavm</targetDirectory>
               <mainClass>org.teavm.javac.Client</mainClass>
               <minifying>false</minifying>
-              <debugInformationGenerated>true</debugInformationGenerated>
               <sourceMapsGenerated>true</sourceMapsGenerated>
               <sourceFilesCopied>true</sourceFilesCopied>
               <optimizationLevel>SIMPLE</optimizationLevel>
@@ -190,6 +217,7 @@
         <configuration>
           <propertyExpansion>config_loc=${basedir}/..</propertyExpansion>
           <configLocation>checkstyle.xml</configLocation>
+          <excludes>**/com/sun/**/*,**/javax/**/*,**/jdk/**/*</excludes>
         </configuration>
       </plugin>
     </plugins>
