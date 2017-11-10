@@ -18,8 +18,12 @@ $ install -DskipTests -Dteavm.build.all=false
 Then, build this project using TeaVM:
 
 ```
-mvn package
+$ mvn package
+$ mvn package
 ```
+
+Yes, currently you have to run build twice, 
+if you are building from the fresh clone or if you cleared project previously.
 
 TeaVM will generate many error messages and produce a JavaScript file.
 Ignore these messages and open `index.html`.

@@ -82,7 +82,7 @@
                          dest="${project.build.directory}/langtools/${jdk.langtools.revision}.zip"
                          usetimestamp="true"/>
                     <unzip src="${project.build.directory}/langtools/${jdk.langtools.revision}.zip"
-                           dest="${project.build.directory}/langtools}" />
+                           dest="${project.build.directory}/langtools" />
                   </tasks>
                 </configuration>
                 <goals>
@@ -104,7 +104,7 @@
         <executions>
           <execution>
             <id>add-langtools-src</id>
-            <phase>generate-sources</phase>
+            <phase>initialize</phase>
             <goals>
               <goal>add-source</goal>
             </goals>
@@ -124,6 +124,12 @@
               <resources>
                 <resource>
                   <directory>${project.build.directory}/generated-resources/stdlib/</directory>
+                </resource>
+                <resource>
+                  <directory>${project.build.directory}/langtools/langtools-${jdk.langtools.revision}/src/share/classes</directory>
+                  <includes>
+                    <include>**/*.properties</include>
+                  </includes>
                 </resource>
               </resources>
             </configuration>
@@ -183,10 +189,11 @@
             <goals>
               <goal>compile</goal>
             </goals>
+            <phase>prepare-package</phase>
             <configuration>
               <targetDirectory>${project.build.directory}/generated/js/teavm</targetDirectory>
               <mainClass>org.teavm.javac.Client</mainClass>
-              <minifying>false</minifying>
+              <minifying>true</minifying>
               <sourceMapsGenerated>true</sourceMapsGenerated>
               <sourceFilesCopied>true</sourceFilesCopied>
               <optimizationLevel>SIMPLE</optimizationLevel>
