@@ -3,5 +3,6 @@
 !/.idea/inspectionProfiles
 !/.idea/codeStyles
 !/.idea/checkstyle-idea.xml
+!/.idea/runConfigurations
 /target
 *.iml
