@@ -21,7 +21,8 @@ import org.teavm.vm.spi.TeaVMPlugin;
 public class JavacPlugin implements TeaVMPlugin {
     @Override
     public void install(TeaVMHost host) {
-        host.add(new ConcurrentHashMapElimination());
+        host.add(new ClassReplacementElimination());
         host.add(new JavacPatches());
+        host.add(new SystemExitElimination());
     }
 }
