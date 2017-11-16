@@ -196,7 +196,7 @@
               <minifying>true</minifying>
               <sourceMapsGenerated>true</sourceMapsGenerated>
               <sourceFilesCopied>true</sourceFilesCopied>
-              <optimizationLevel>SIMPLE</optimizationLevel>
+              <optimizationLevel>ADVANCED</optimizationLevel>
             </configuration>
           </execution>
         </executions>
