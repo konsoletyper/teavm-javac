@@ -18,18 +18,29 @@ package org.teavm.javac;
 
 import com.sun.tools.javac.api.JavacTool;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
+import org.teavm.backend.javascript.JavaScriptTarget;
+import org.teavm.diagnostics.Problem;
+import org.teavm.diagnostics.ProblemSeverity;
 import org.teavm.jso.JSBody;
 import org.teavm.jso.browser.Window;
 import org.teavm.jso.dom.html.HTMLDocument;
 import org.teavm.jso.dom.html.HTMLInputElement;
 import org.teavm.jso.dom.html.HTMLLinkElement;
 import org.teavm.jso.typedarrays.Uint8Array;
+import org.teavm.model.ClassHolderSource;
+import org.teavm.parsing.CompositeClassHolderSource;
+import org.teavm.parsing.DirectoryClasspathClassHolderSource;
+import org.teavm.vm.TeaVM;
+import org.teavm.vm.TeaVMBuilder;
 
 public final class Client {
     private Client() {
@@ -43,7 +54,7 @@ public final class Client {
         document.getElementById("compile-button").addEventListener("click", event -> {
             try {
                 createSourceFile(textArea.getValue());
-                if (doCompile()) {
+                if (doCompile() && generateJavaScript()) {
                     fetchResult();
                 }
             } catch (IOException e) {
@@ -53,7 +64,7 @@ public final class Client {
     }
 
     private static void fetchResult() throws IOException {
-        File file = new File("/Hello.class");
+        File file = new File("/out/Hello.class");
         Uint8Array data = Uint8Array.create((int) file.length());
         try (FileInputStream input = new FileInputStream(file)) {
             int index = 0;
@@ -90,12 +101,40 @@ public final class Client {
                 Arrays.asList(new File("/Hello.java")));
         OutputStreamWriter out = new OutputStreamWriter(System.out);
 
-        JavaCompiler.CompilationTask task = compiler.getTask(out, fileManager, null, Arrays.asList("-verbose"),
-                null, compilationUnits);
+        new File("/out").mkdirs();
+        JavaCompiler.CompilationTask task = compiler.getTask(out, fileManager, null,
+                Arrays.asList("-verbose", "-d", "/out"), null, compilationUnits);
         boolean result = task.call();
         out.flush();
 
         return result;
+    }
+
+    private static boolean generateJavaScript() {
+        Properties stdlibMapping = new Properties();
+        stdlibMapping.setProperty("packagePrefix.java", "org.teavm.classlib");
+        stdlibMapping.setProperty("classPrefix.java", "T");
+
+        List<ClassHolderSource> classSources = new ArrayList<>();
+        classSources.add(new DirectoryClasspathClassHolderSource(new File("/out")));
+        classSources.add(new DirectoryClasspathClassHolderSource(new File("/stdlib"), stdlibMapping));
+
+        TeaVM teavm = new TeaVMBuilder(new JavaScriptTarget())
+                .setClassSource(new CompositeClassHolderSource(classSources))
+                .build();
+
+        File outDir = new File("/js-out");
+        outDir.mkdirs();
+        teavm.build(outDir, "classes.js");
+        boolean hasSevere = false;
+        for (Problem problem : teavm.getProblemProvider().getProblems()) {
+            System.out.println(problem.getSeverity() + " " + problem.getText());
+            if (problem.getSeverity() == ProblemSeverity.ERROR) {
+                hasSevere = true;
+            }
+        }
+
+        return !hasSevere;
     }
 
     private static void createStdlib() throws IOException {
