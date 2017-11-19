@@ -16,12 +16,11 @@
 
 package org.teavm.javac;
 
+import java.lang.reflect.Method;
 import java.util.Optional;
 import org.teavm.diagnostics.Diagnostics;
 import org.teavm.model.*;
-import org.teavm.model.instructions.ExitInstruction;
-import org.teavm.model.instructions.GetFieldInstruction;
-import org.teavm.model.instructions.IntegerConstantInstruction;
+import org.teavm.model.instructions.*;
 import org.teavm.model.optimization.ConstantConditionElimination;
 import org.teavm.model.optimization.GlobalValueNumbering;
 import org.teavm.model.optimization.UnreachableBasicBlockElimination;
@@ -41,6 +40,9 @@ public class JavacPatches implements ClassHolderTransformer {
                 break;
             case "com.sun.tools.javac.file.RegularFileObject":
                 processRegularFileObject(cls);
+                break;
+            case "org.mozilla.javascript.Kit":
+                processKit(cls);
                 break;
         }
     }
@@ -75,6 +77,49 @@ public class JavacPatches implements ClassHolderTransformer {
             newProgram.createVariable();
             newProgram.createVariable();
             BasicBlock block = newProgram.createBasicBlock();
+            block.add(new ExitInstruction());
+            method.setProgram(newProgram);
+        }
+    }
+
+    private void processKit(ClassHolder cls) {
+        MethodHolder method = cls.getMethod(new MethodDescriptor("classOrNull", String.class, Class.class));
+        if (method != null) {
+            Program newProgram = new Program();
+            newProgram.createVariable();
+            newProgram.createVariable();
+            Variable nullVar = newProgram.createVariable();
+            BasicBlock block = newProgram.createBasicBlock();
+
+            NullConstantInstruction nullConstant = new NullConstantInstruction();
+            nullConstant.setReceiver(nullVar);
+            block.add(nullConstant);
+
+            ExitInstruction exit = new ExitInstruction();
+            exit.setValueToReturn(nullVar);
+            block.add(exit);
+
+            method.setProgram(newProgram);
+        }
+
+        method = cls.getMethod(new MethodDescriptor("<clinit>", void.class));
+        if (method != null) {
+            Program newProgram = new Program();
+            newProgram.createVariable();
+            Variable nullVar = newProgram.createVariable();
+
+            BasicBlock block = newProgram.createBasicBlock();
+
+            NullConstantInstruction nullConstant = new NullConstantInstruction();
+            nullConstant.setReceiver(nullVar);
+            block.add(nullConstant);
+
+            PutFieldInstruction putField = new PutFieldInstruction();
+            putField.setFieldType(ValueType.parse(Method.class));
+            putField.setField(new FieldReference(cls.getName(), "Throwable_initCause"));
+            putField.setValue(nullVar);
+            block.add(putField);
+
             block.add(new ExitInstruction());
             method.setProgram(newProgram);
         }
