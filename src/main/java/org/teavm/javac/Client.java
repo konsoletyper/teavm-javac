@@ -17,7 +17,17 @@
 package org.teavm.javac;
 
 import com.sun.tools.javac.api.JavacTool;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -33,12 +43,18 @@ import org.teavm.diagnostics.Problem;
 import org.teavm.diagnostics.ProblemSeverity;
 import org.teavm.interop.Async;
 import org.teavm.jso.JSBody;
+import org.teavm.jso.JSObject;
 import org.teavm.jso.ajax.XMLHttpRequest;
 import org.teavm.jso.browser.Window;
+import org.teavm.jso.core.JSString;
+import org.teavm.jso.dom.events.EventListener;
+import org.teavm.jso.dom.events.MessageEvent;
 import org.teavm.jso.dom.html.HTMLDocument;
+import org.teavm.jso.dom.html.HTMLIFrameElement;
 import org.teavm.jso.dom.html.HTMLInputElement;
 import org.teavm.jso.dom.html.HTMLLinkElement;
 import org.teavm.jso.impl.JSOPlugin;
+import org.teavm.jso.json.JSON;
 import org.teavm.jso.typedarrays.ArrayBuffer;
 import org.teavm.jso.typedarrays.Int8Array;
 import org.teavm.jso.typedarrays.Uint8Array;
@@ -51,22 +67,37 @@ import org.teavm.platform.async.AsyncCallback;
 import org.teavm.platform.plugin.PlatformPlugin;
 import org.teavm.vm.TeaVM;
 import org.teavm.vm.TeaVMBuilder;
+import org.teavm.vm.TeaVMPhase;
+import org.teavm.vm.TeaVMProgressFeedback;
+import org.teavm.vm.TeaVMProgressListener;
 
 public final class Client {
     private Client() {
     }
 
     public static void main(String[] args) throws IOException {
-        createStdlib();
-        loadTeaVMClasslib();
-
+        init();
         HTMLDocument document = Window.current().getDocument();
         HTMLInputElement textArea = (HTMLInputElement) document.getElementById("source-code");
         document.getElementById("compile-button").addEventListener("click", event -> {
             try {
                 createSourceFile(textArea.getValue());
                 if (doCompile() && generateJavaScript()) {
-                    fetchResult();
+                    File jsFile = new File("/js-out/classes.js");
+                    if (jsFile.exists()) {
+                        StringBuilder sb = new StringBuilder();
+                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                                new FileInputStream(jsFile), "UTF-8"))) {
+                            while (true) {
+                                String line = reader.readLine();
+                                if (line == null) {
+                                    break;
+                                }
+                                sb.append(line).append('\n');
+                            }
+                        }
+                        executeCode(sb.toString());
+                    }
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -74,29 +105,52 @@ public final class Client {
         });
     }
 
-    private static void fetchResult() throws IOException {
-        File file = new File("/out/Hello.class");
-        Uint8Array data = Uint8Array.create((int) file.length());
-        try (FileInputStream input = new FileInputStream(file)) {
-            int index = 0;
-            while (true) {
-                short b = (short) input.read();
-                if (b < 0) {
-                    break;
-                }
-                data.set(index++, b);
-            }
+    private static void init() throws IOException {
+        System.out.println("Initializing");
+
+        long start = System.currentTimeMillis();
+        createStdlib();
+        loadTeaVMClasslib();
+        long end = System.currentTimeMillis();
+
+        System.out.println("Initialized in " + (end - start) + " ms");
+    }
+
+    private static HTMLIFrameElement frame;
+    private static EventListener<MessageEvent> listener;
+
+    private static void executeCode(String code) {
+        if (frame != null) {
+            frame.delete();
         }
 
         HTMLDocument document = Window.current().getDocument();
-        HTMLLinkElement element = (HTMLLinkElement) document.createElement("a");
-        element.setHref(createObjectURL(data));
-        setDownload(element, "Hello.class");
-        document.getBody().appendChild(element);
-        element.click();
-        element.delete();
+        frame = (HTMLIFrameElement) document.createElement("iframe");
+        frame.setSourceAddress("frame.html");
+        frame.setWidth("1px");
+        frame.setHeight("1px");
+
+        HTMLInputElement stdout = (HTMLInputElement) document.getElementById("stdout");
+        stdout.setValue("");
+
+        listener = event -> {
+            FrameCommand command = (FrameCommand) JSON.parse(((JSString) event.getData()).stringValue());
+            if (command.getCommand().equals("ready")) {
+                FrameCodeCommand codeCommand = createEmpty();
+                codeCommand.setCommand("code");
+                codeCommand.setCode(code);
+                frame.getContentWindow().postMessage(JSString.valueOf(JSON.stringify(codeCommand)), "*");
+                Window.current().removeEventListener("message", listener);
+                listener = null;
+            }
+        };
+        Window.current().addEventListener("message", listener);
+
+        document.getBody().appendChild(frame);
     }
 
+    @JSBody(script = "return {}")
+    private static native <T extends JSObject> T createEmpty();
 
     @JSBody(params = "data",
             script = "return URL.createObjectURL(new Blob([data], { type: 'application/octet-stream' }));")
@@ -121,37 +175,84 @@ public final class Client {
         return result;
     }
 
+    private static long lastPhaseTime = System.currentTimeMillis();
+    private static TeaVMPhase lastPhase;
+
     private static boolean generateJavaScript() {
-        Properties stdlibMapping = new Properties();
-        stdlibMapping.setProperty("packagePrefix.java", "org.teavm.classlib");
-        stdlibMapping.setProperty("classPrefix.java", "T");
+        try {
+            long start = System.currentTimeMillis();
 
-        List<ClassHolderSource> classSources = new ArrayList<>();
-        classSources.add(new DirectoryClasspathClassHolderSource(new File("/out")));
-        classSources.add(new DirectoryClasspathClassHolderSource(new File("/teavm-stdlib"), stdlibMapping));
+            Properties stdlibMapping = new Properties();
+            stdlibMapping.setProperty("packagePrefix.java", "org.teavm.classlib");
+            stdlibMapping.setProperty("classPrefix.java", "T");
 
-        TeaVM teavm = new TeaVMBuilder(new JavaScriptTarget())
-                .setClassSource(new CompositeClassHolderSource(classSources))
-                .build();
-        new JSOPlugin().install(teavm);
-        new PlatformPlugin().install(teavm);
-        new JCLPlugin().install(teavm);
+            List<ClassHolderSource> classSources = new ArrayList<>();
+            classSources.add(new DirectoryClasspathClassHolderSource(new File("/out")));
+            classSources.add(new DirectoryClasspathClassHolderSource(new File("/teavm-stdlib"), stdlibMapping));
 
-        teavm.entryPoint("main", new MethodReference("Hello", "main", ValueType.parse(String[].class),
-                ValueType.VOID))
-                .withArrayValue(1, "java.lang.String");
-        File outDir = new File("/js-out");
-        outDir.mkdirs();
-        teavm.build(outDir, "classes.js");
-        boolean hasSevere = false;
-        for (Problem problem : teavm.getProblemProvider().getProblems()) {
-            if (problem.getSeverity() == ProblemSeverity.ERROR) {
-                hasSevere = true;
+            JavaScriptTarget jsTarget = new JavaScriptTarget();
+            jsTarget.setMinifying(false);
+            TeaVM teavm = new TeaVMBuilder(jsTarget)
+                    .setClassSource(new CompositeClassHolderSource(classSources))
+                    .build();
+
+            long pluginInstallationStart = System.currentTimeMillis();
+            new JSOPlugin().install(teavm);
+            new PlatformPlugin().install(teavm);
+            new JCLPlugin().install(teavm);
+            System.out.println("Plugins loaded in " + (System.currentTimeMillis() - pluginInstallationStart) + " ms");
+
+            teavm.entryPoint("main", new MethodReference("Hello", "main", ValueType.parse(String[].class),
+                    ValueType.VOID))
+                    .withArrayValue(1, "java.lang.String");
+            File outDir = new File("/js-out");
+            outDir.mkdirs();
+
+            System.out.println("TeaVM initialized in " + (System.currentTimeMillis() - start) + " ms");
+
+            lastPhase = null;
+            lastPhaseTime = System.currentTimeMillis();
+            teavm.setProgressListener(new TeaVMProgressListener() {
+                @Override
+                public TeaVMProgressFeedback phaseStarted(TeaVMPhase phase, int count) {
+                    if (phase != lastPhase) {
+                        long newPhaseTime = System.currentTimeMillis();
+                        if (lastPhase != null) {
+                            System.out.println(lastPhase.name() + ": " + (newPhaseTime - lastPhaseTime) + " ms");
+                        }
+                        lastPhaseTime = newPhaseTime;
+                        lastPhase = phase;
+                    }
+                    return TeaVMProgressFeedback.CONTINUE;
+                }
+
+                @Override
+                public TeaVMProgressFeedback progressReached(int progress) {
+                    return null;
+                }
+            });
+
+            if (lastPhase != null) {
+                System.out.println(lastPhase.name() + ": " + (System.currentTimeMillis() - lastPhaseTime) + " ms");
             }
-        }
-        TeaVMProblemRenderer.describeProblems(teavm);
 
-        return !hasSevere;
+            teavm.build(outDir, "classes.js");
+            boolean hasSevere = false;
+            for (Problem problem : teavm.getProblemProvider().getProblems()) {
+                if (problem.getSeverity() == ProblemSeverity.ERROR) {
+                    hasSevere = true;
+                }
+            }
+            TeaVMProblemRenderer.describeProblems(teavm);
+
+            long end = System.currentTimeMillis();
+            System.out.println("TeaVM complete in " + (end - start) + " ms");
+
+            return !hasSevere;
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     private static void createStdlib() throws IOException {
