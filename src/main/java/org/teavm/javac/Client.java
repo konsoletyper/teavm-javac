@@ -37,6 +37,8 @@ import java.util.zip.ZipInputStream;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
+import org.teavm.ast.cache.InMemoryRegularMethodNodeCache;
+import org.teavm.ast.cache.MethodNodeCache;
 import org.teavm.backend.javascript.JavaScriptTarget;
 import org.teavm.classlib.impl.JCLPlugin;
 import org.teavm.diagnostics.Problem;
@@ -61,6 +63,7 @@ import org.teavm.jso.typedarrays.Uint8Array;
 import org.teavm.model.ClassHolderSource;
 import org.teavm.model.InMemoryProgramCache;
 import org.teavm.model.MethodReference;
+import org.teavm.model.ProgramCache;
 import org.teavm.model.ValueType;
 import org.teavm.parsing.CompositeClassHolderSource;
 import org.teavm.parsing.DirectoryClasspathClassHolderSource;
@@ -179,7 +182,8 @@ public final class Client {
     private static long lastPhaseTime = System.currentTimeMillis();
     private static TeaVMPhase lastPhase;
     private static ClassHolderSource stdlibClassSource;
-    private static InMemoryProgramCache programCache = new InMemoryProgramCache();
+    private static ProgramCache programCache = new InMemoryProgramCache();
+    private static MethodNodeCache astCache = new InMemoryRegularMethodNodeCache();
 
     static {
         Properties stdlibMapping = new Properties();
@@ -204,6 +208,7 @@ public final class Client {
                     .build();
             teavm.setIncremental(true);
             teavm.setProgramCache(programCache);
+            jsTarget.setAstCache(astCache);
 
             long pluginInstallationStart = System.currentTimeMillis();
             new JSOPlugin().install(teavm);
