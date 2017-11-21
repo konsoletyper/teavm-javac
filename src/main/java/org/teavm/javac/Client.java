@@ -59,6 +59,7 @@ import org.teavm.jso.typedarrays.ArrayBuffer;
 import org.teavm.jso.typedarrays.Int8Array;
 import org.teavm.jso.typedarrays.Uint8Array;
 import org.teavm.model.ClassHolderSource;
+import org.teavm.model.InMemoryProgramCache;
 import org.teavm.model.MethodReference;
 import org.teavm.model.ValueType;
 import org.teavm.parsing.CompositeClassHolderSource;
@@ -177,24 +178,32 @@ public final class Client {
 
     private static long lastPhaseTime = System.currentTimeMillis();
     private static TeaVMPhase lastPhase;
+    private static ClassHolderSource stdlibClassSource;
+    private static InMemoryProgramCache programCache = new InMemoryProgramCache();
+
+    static {
+        Properties stdlibMapping = new Properties();
+        stdlibMapping.setProperty("packagePrefix.java", "org.teavm.classlib");
+        stdlibMapping.setProperty("classPrefix.java", "T");
+
+        stdlibClassSource = new DirectoryClasspathClassHolderSource(new File("/teavm-stdlib"), stdlibMapping);
+    }
 
     private static boolean generateJavaScript() {
         try {
             long start = System.currentTimeMillis();
 
-            Properties stdlibMapping = new Properties();
-            stdlibMapping.setProperty("packagePrefix.java", "org.teavm.classlib");
-            stdlibMapping.setProperty("classPrefix.java", "T");
-
             List<ClassHolderSource> classSources = new ArrayList<>();
+            classSources.add(stdlibClassSource);
             classSources.add(new DirectoryClasspathClassHolderSource(new File("/out")));
-            classSources.add(new DirectoryClasspathClassHolderSource(new File("/teavm-stdlib"), stdlibMapping));
 
             JavaScriptTarget jsTarget = new JavaScriptTarget();
             jsTarget.setMinifying(false);
             TeaVM teavm = new TeaVMBuilder(jsTarget)
                     .setClassSource(new CompositeClassHolderSource(classSources))
                     .build();
+            teavm.setIncremental(true);
+            teavm.setProgramCache(programCache);
 
             long pluginInstallationStart = System.currentTimeMillis();
             new JSOPlugin().install(teavm);
