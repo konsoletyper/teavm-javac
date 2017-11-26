@@ -159,27 +159,6 @@
       </plugin>
 
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>1.6.0</version>
-        <executions>
-          <execution>
-            <id>generate-classlib</id>
-            <goals>
-              <goal>java</goal>
-            </goals>
-            <phase>process-classes</phase>
-            <configuration>
-              <mainClass>org.teavm.javac.StdlibBuilder</mainClass>
-              <arguments>
-                <argument>${project.build.directory}/generated-resources/stdlib/stdlib</argument>
-              </arguments>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
-      <plugin>
         <groupId>org.teavm</groupId>
         <artifactId>teavm-maven-plugin</artifactId>
         <version>${teavm.version}</version>

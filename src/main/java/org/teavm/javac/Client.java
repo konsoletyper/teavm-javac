@@ -37,6 +37,8 @@ import java.util.zip.ZipInputStream;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
 import org.teavm.ast.cache.InMemoryRegularMethodNodeCache;
 import org.teavm.ast.cache.MethodNodeCache;
 import org.teavm.backend.javascript.JavaScriptTarget;
@@ -113,8 +115,8 @@ public final class Client {
         System.out.println("Initializing");
 
         long start = System.currentTimeMillis();
-        createStdlib();
         loadTeaVMClasslib();
+        createStdlib();
         long end = System.currentTimeMillis();
 
         System.out.println("Initialized in " + (end - start) + " ms");
@@ -269,18 +271,6 @@ public final class Client {
         }
     }
 
-    private static void createStdlib() throws IOException {
-        System.setProperty("sun.boot.class.path", "/stdlib");
-
-        File baseDir = new File("/stdlib");
-        baseDir.mkdirs();
-        ClassLoader loader = ClassLoader.getSystemClassLoader();
-
-        try (ZipInputStream input = new ZipInputStream(loader.getResourceAsStream("stdlib/data.zip"))) {
-            unzip(input, baseDir);
-        }
-    }
-
     private static void loadTeaVMClasslib() throws IOException {
         File baseDir = new File("/teavm-stdlib");
         baseDir.mkdirs();
@@ -288,6 +278,45 @@ public final class Client {
         byte[] data = downloadFile("teavm-classlib.zip");
         try (ZipInputStream input = new ZipInputStream(new ByteArrayInputStream(data))) {
             unzip(input, baseDir);
+        }
+    }
+
+    private static void createStdlib() throws IOException {
+        System.setProperty("sun.boot.class.path", "/stdlib");
+
+        File baseDir = new File("/stdlib");
+        baseDir.mkdirs();
+        traverseStdlib(new File("/teavm-stdlib"), baseDir, ".");
+    }
+
+    private static void traverseStdlib(File sourceDir, File destDir, String path) throws IOException {
+        File sourceFile = new File(sourceDir, path);
+        File[] files = sourceFile.listFiles();
+        if (files == null) {
+            return;
+        }
+        for (File file : files) {
+            if (file.isDirectory()) {
+                traverseStdlib(sourceDir, destDir, path + "/" + file.getName());
+            } else if (file.getName().endsWith(".class")) {
+                transformClassFile(file, destDir);
+            }
+        }
+    }
+
+    private static void transformClassFile(File sourceFile, File destDir) throws IOException {
+        ClassWriter writer = new ClassWriter(0);
+        StdlibConverter converter = new StdlibConverter(writer);
+        try (InputStream input = new FileInputStream(sourceFile)) {
+            ClassReader reader = new ClassReader(input);
+            reader.accept(converter, ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES | ClassReader.SKIP_DEBUG);
+        }
+        if (converter.visible) {
+            File destFile = new File(destDir, converter.className + ".class");
+            destFile.getParentFile().mkdirs();
+            try (OutputStream output = new FileOutputStream(destFile)) {
+                output.write(writer.toByteArray());
+            }
         }
     }
 
