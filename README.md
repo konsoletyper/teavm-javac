@@ -19,13 +19,7 @@ Then, build this project using TeaVM:
 
 ```
 $ mvn package
-$ mvn package
 ```
 
-Yes, currently you have to run build twice, 
-if you are building from the fresh clone or if you cleared project previously.
-
-TeaVM will generate many error messages and produce a JavaScript file.
-Ignore these messages and open `index.html`.
-You should be able to compile simple Java sources and get bytecode (`Hello.class` file).
-Currently, all diagnostics are printed to browser console. 
+Resulting `.war` file can be found in `compiler/target/`.
+Deploy it on Tomcat, or simply unpack all resources and serve them via HTTP. 
