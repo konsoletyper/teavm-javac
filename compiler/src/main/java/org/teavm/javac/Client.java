@@ -275,7 +275,7 @@ public final class Client {
         File baseDir = new File("/teavm-stdlib");
         baseDir.mkdirs();
 
-        byte[] data = downloadFile("teavm-classlib.zip");
+        byte[] data = downloadFile("classlib.zip");
         try (ZipInputStream input = new ZipInputStream(new ByteArrayInputStream(data))) {
             unzip(input, baseDir);
         }
