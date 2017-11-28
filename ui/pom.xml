@@ -24,29 +24,10 @@
     <version>1.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>teavm-javac-compiler</artifactId>
+  <artifactId>teavm-javac-ui</artifactId>
   <packaging>war</packaging>
 
   <dependencies>
-    <dependency>
-      <groupId>org.teavm.javac</groupId>
-      <artifactId>teavm-javac-javac</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.teavm.javac</groupId>
-      <artifactId>teavm-javac-protocol</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.teavm.javac</groupId>
-      <artifactId>teavm-javac-classlib</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-
     <dependency>
       <groupId>org.teavm</groupId>
       <artifactId>teavm-classlib</artifactId>
@@ -61,16 +42,16 @@
     </dependency>
 
     <dependency>
-      <groupId>javax.servlet</groupId>
-      <artifactId>javax.servlet-api</artifactId>
-      <version>3.1.0</version>
-      <scope>provided</scope>
+      <groupId>org.teavm.javac</groupId>
+      <artifactId>teavm-javac-protocol</artifactId>
+      <version>${project.version}</version>
     </dependency>
 
     <dependency>
-      <groupId>org.ow2.asm</groupId>
-      <artifactId>asm-debug-all</artifactId>
-      <version>5.2</version>
+      <groupId>org.teavm.javac</groupId>
+      <artifactId>teavm-javac-compiler</artifactId>
+      <version>${project.version}</version>
+      <type>war</type>
     </dependency>
   </dependencies>
 
@@ -88,8 +69,8 @@
             </goals>
             <phase>prepare-package</phase>
             <configuration>
-              <targetDirectory>${project.build.directory}/generated/js/teavm/worker</targetDirectory>
-              <mainClass>org.teavm.javac.Client</mainClass>
+              <targetDirectory>${project.build.directory}/generated/js/teavm</targetDirectory>
+              <mainClass>org.teavm.javac.ui.Client</mainClass>
               <minifying>false</minifying>
               <sourceMapsGenerated>true</sourceMapsGenerated>
               <sourceFilesCopied>true</sourceFilesCopied>
@@ -124,33 +105,6 @@
       </plugin>
 
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <version>3.0.2</version>
-        <executions>
-          <execution>
-            <id>copy</id>
-            <phase>prepare-package</phase>
-            <goals>
-              <goal>copy</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>org.teavm.javac</groupId>
-                  <artifactId>teavm-javac-classlib</artifactId>
-                  <version>${project.version}</version>
-                  <outputDirectory>${project.build.directory}/ext-libs/</outputDirectory>
-                  <destFileName>classlib.zip</destFileName>
-                </artifactItem>
-              </artifactItems>
-              <overWriteIfNewer>true</overWriteIfNewer>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
-      <plugin>
         <artifactId>maven-war-plugin</artifactId>
         <version>2.4</version>
         <configuration>
@@ -158,10 +112,13 @@
             <resource>
               <directory>${project.build.directory}/generated/js</directory>
             </resource>
-            <resource>
-              <directory>${project.build.directory}/ext-libs</directory>
-            </resource>
           </webResources>
+          <overlays>
+            <overlay>
+              <groupId>org.teavm.javac</groupId>
+              <artifactId>teavm-javac-compiler</artifactId>
+            </overlay>
+          </overlays>
         </configuration>
       </plugin>
     </plugins>

@@ -14,14 +14,14 @@
  *  limitations under the License.
  */
 
-package org.teavm.javac;
+package org.teavm.javac.protocol;
 
 import org.teavm.jso.JSProperty;
 
-public interface FrameCodeCommand extends FrameCommand {
+public interface CompileMessage extends WorkerMessage {
     @JSProperty
-    String getCode();
+    String getText();
 
     @JSProperty
-    void setCode(String code);
+    void setText(String text);
 }

@@ -10,7 +10,7 @@
           </option>
           <option name="goals">
             <list>
-              <option value="package" />
+              <option value="install" />
               <option value="-e" />
             </list>
           </option>

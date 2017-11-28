@@ -21,6 +21,9 @@ import org.teavm.callgraph.CallGraphNode;
 import org.teavm.callgraph.CallSite;
 import org.teavm.diagnostics.DefaultProblemTextConsumer;
 import org.teavm.diagnostics.Problem;
+import org.teavm.javac.protocol.TeaVMDiagnosticMessage;
+import org.teavm.javac.protocol.WorkerMessage;
+import org.teavm.jso.browser.Window;
 import org.teavm.model.CallLocation;
 import org.teavm.model.MethodReference;
 import org.teavm.model.TextLocation;
@@ -30,7 +33,7 @@ public final class TeaVMProblemRenderer {
     private TeaVMProblemRenderer() {
     }
 
-    public static void describeProblems(TeaVM vm) {
+    public static void describeProblems(WorkerMessage request, String fileName, TeaVM vm) {
         CallGraph cg = vm.getDependencyInfo().getCallGraph();
         DefaultProblemTextConsumer consumer = new DefaultProblemTextConsumer();
         for (Problem problem : vm.getProblemProvider().getProblems()) {
@@ -38,7 +41,15 @@ public final class TeaVMProblemRenderer {
             problem.render(consumer);
             StringBuilder sb = new StringBuilder();
             sb.append(consumer.getText());
-            renderCallStack(cg, problem.getLocation(), sb);
+
+            TeaVMDiagnosticMessage message = Client.createMessage();
+            message.setId(request.getId());
+            message.setLineNumber(-1);
+            message.setCommand("diagnostic");
+            message.setSeverity(problem.getSeverity().name());
+
+            renderCallStack(fileName, message, cg, problem.getLocation(), sb);
+
             String problemText = sb.toString();
             switch (problem.getSeverity()) {
                 case ERROR:
@@ -48,10 +59,14 @@ public final class TeaVMProblemRenderer {
                     System.out.println("WARNING: " + problemText);
                     break;
             }
+
+            message.setText(sb.toString());
+            Window.current().postMessage(message);
         }
     }
 
-    public static void renderCallStack(CallGraph cg, CallLocation location, StringBuilder sb) {
+    public static void renderCallStack(String fileName, TeaVMDiagnosticMessage targetMessage,
+            CallGraph cg, CallLocation location, StringBuilder sb) {
         if (location == null) {
             return;
         }
@@ -65,6 +80,11 @@ public final class TeaVMProblemRenderer {
                     break;
                 }
                 CallSite callSite = callSites.next();
+                if (callSite.getLocation() != null && callSite.getLocation().getFileName().equals(fileName)) {
+                    targetMessage.setFileName(callSite.getLocation().getFileName());
+                    targetMessage.setLineNumber(callSite.getLocation().getLine());
+                    return;
+                }
                 sb.append("\n    at ");
                 renderCallLocation(callSite.getCaller().getMethod(), callSite.getLocation(), sb);
                 node = callSite.getCaller();
