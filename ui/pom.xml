@@ -71,7 +71,7 @@
             <configuration>
               <targetDirectory>${project.build.directory}/generated/js/teavm</targetDirectory>
               <mainClass>org.teavm.javac.ui.Client</mainClass>
-              <minifying>false</minifying>
+              <minifying>true</minifying>
               <sourceMapsGenerated>true</sourceMapsGenerated>
               <sourceFilesCopied>true</sourceFilesCopied>
               <optimizationLevel>ADVANCED</optimizationLevel>
