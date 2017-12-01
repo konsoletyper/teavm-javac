@@ -42,10 +42,11 @@ public final class Client {
 
     private static Worker worker;
     private static HTMLInputElement compileButton = HTMLDocument.current().getElementById("compile-button").cast();
-    private static HTMLInputElement textArea = HTMLDocument.current().getElementById("source-code").cast();
     private static int lastId;
+    private static CodeMirror codeMirror;
 
     public static void main(String[] args) {
+        initEditor();
         init();
         compileButton.addEventListener("click", event -> {
             new Thread(() -> {
@@ -61,6 +62,13 @@ public final class Client {
                 }
             }).start();
         });
+    }
+
+    private static void initEditor() {
+        CodeMirrorConfig config = createJs();
+        config.setIndentUnit(4);
+        config.setLineNumbers(true);
+        codeMirror = CodeMirror.fromTextArea(HTMLDocument.current().getElementById("source-code"), config);
     }
 
     private static boolean init() {
@@ -97,7 +105,7 @@ public final class Client {
 
     private static String compile() {
         CompileMessage request = createMessage("compile");
-        request.setText(textArea.getValue());
+        request.setText(codeMirror.getValue());
         worker.postMessage(request);
 
         while (true) {

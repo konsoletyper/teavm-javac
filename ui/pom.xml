@@ -58,6 +58,44 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>com.github.eirslett</groupId>
+        <artifactId>frontend-maven-plugin</artifactId>
+        <version>1.6</version>
+        <executions>
+          <execution>
+            <id>install node and npm</id>
+            <goals>
+              <goal>install-node-and-npm</goal>
+            </goals>
+          </execution>
+
+          <execution>
+            <id>npm install</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <configuration>
+              <arguments>install</arguments>
+            </configuration>
+          </execution>
+
+          <execution>
+            <id>build static</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <configuration>
+              <arguments>run build-all</arguments>
+            </configuration>
+          </execution>
+        </executions>
+        <configuration>
+          <nodeVersion>v8.9.1</nodeVersion>
+          <npmVersion>5.5.1</npmVersion>
+        </configuration>
+      </plugin>
+
+      <plugin>
         <groupId>org.teavm</groupId>
         <artifactId>teavm-maven-plugin</artifactId>
         <version>${teavm.version}</version>
@@ -111,6 +149,9 @@
           <webResources>
             <resource>
               <directory>${project.build.directory}/generated/js</directory>
+            </resource>
+            <resource>
+              <directory>${project.build.directory}/static</directory>
             </resource>
           </webResources>
           <overlays>

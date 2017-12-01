@@ -20,12 +20,15 @@
     <meta charset="UTF-8">
     <meta property="workerLocation" content="worker.js">
     <meta property="stdlibLocation" content="classlib.zip">
-    <script src="teavm/runtime.js"></script>
-    <script src="teavm/classes.js"></script>
+    <script type="text/javascript" src="codemirror.min.js"></script>
+    <script type="text/javascript" src="codemirror-clike.min.js"></script>
+    <script type="text/javascript" src="teavm/runtime.js"></script>
+    <script type="text/javascript" src="teavm/classes.js"></script>
+    <link rel="stylesheet" type="text/css" href="codemirror.min.css">
   </head>
   <body onload="main()">
     <div>
-      <textarea cols="100" rows="30" id="source-code">public class Hello {
+      <textarea cols="80" rows="20" id="source-code">public class Hello {
     public static void main(String[] args) {
         System.out.println("Hello, world!");
     }

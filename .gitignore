@@ -5,4 +5,5 @@
 !/.idea/checkstyle-idea.xml
 !/.idea/runConfigurations
 target
+node_modules
 *.iml
