@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "codemirror": "5.32.0",
+    "bootstrap": "3.3.7",
     "uglify-js": "3.2.0",
     "uglifycss": "0.0.27"
   },

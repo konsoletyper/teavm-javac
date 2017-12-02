@@ -19,16 +19,24 @@ package org.teavm.javac.ui;
 import org.teavm.interop.Async;
 import org.teavm.javac.protocol.CompilationResultMessage;
 import org.teavm.javac.protocol.CompileMessage;
+import org.teavm.javac.protocol.CompilerDiagnosticMessage;
 import org.teavm.javac.protocol.ErrorMessage;
 import org.teavm.javac.protocol.LoadStdlibMessage;
 import org.teavm.javac.protocol.WorkerMessage;
+import org.teavm.javac.ui.codemirror.CodeMirror;
+import org.teavm.javac.ui.codemirror.CodeMirrorConfig;
+import org.teavm.javac.ui.codemirror.Mark;
+import org.teavm.javac.ui.codemirror.MarkOptions;
+import org.teavm.javac.ui.codemirror.TextLocation;
 import org.teavm.jso.JSBody;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.browser.Window;
+import org.teavm.jso.core.JSArrayReader;
 import org.teavm.jso.core.JSString;
 import org.teavm.jso.dom.events.EventListener;
 import org.teavm.jso.dom.events.MessageEvent;
 import org.teavm.jso.dom.html.HTMLDocument;
+import org.teavm.jso.dom.html.HTMLElement;
 import org.teavm.jso.dom.html.HTMLIFrameElement;
 import org.teavm.jso.dom.html.HTMLInputElement;
 import org.teavm.jso.dom.html.HTMLMetaElement;
@@ -40,10 +48,15 @@ public final class Client {
     private Client() {
     }
 
+    private static final String DIAGNOSTICS_GUTTER = "diagnostics";
+
     private static Worker worker;
     private static HTMLInputElement compileButton = HTMLDocument.current().getElementById("compile-button").cast();
     private static int lastId;
     private static CodeMirror codeMirror;
+    private static PositionIndexer positionIndexer;
+    private static HTMLElement[] gutterElements;
+    private static int[] gutterSeverity;
 
     public static void main(String[] args) {
         initEditor();
@@ -68,6 +81,7 @@ public final class Client {
         CodeMirrorConfig config = createJs();
         config.setIndentUnit(4);
         config.setLineNumbers(true);
+        config.setGutters(new String[] { DIAGNOSTICS_GUTTER, "CodeMirror-linenumbers" });
         codeMirror = CodeMirror.fromTextArea(HTMLDocument.current().getElementById("source-code"), config);
     }
 
@@ -104,8 +118,18 @@ public final class Client {
     }
 
     private static String compile() {
+        JSArrayReader<Mark> allMarks = codeMirror.getAllMarks();
+        for (int i = 0; i < allMarks.getLength(); ++i) {
+            allMarks.get(i).clear();
+        }
+        codeMirror.clearGutter(DIAGNOSTICS_GUTTER);
+        gutterElements = new HTMLElement[codeMirror.lineCount()];
+        gutterSeverity = new int[codeMirror.lineCount()];
+
         CompileMessage request = createMessage("compile");
-        request.setText(codeMirror.getValue());
+        String code = codeMirror.getValue();
+        positionIndexer = new PositionIndexer(code);
+        request.setText(code);
         worker.postMessage(request);
 
         while (true) {
@@ -115,8 +139,72 @@ public final class Client {
                     CompilationResultMessage compilationResult = (CompilationResultMessage) response;
                     return compilationResult.getStatus().equals("successful") ? compilationResult.getScript() : null;
                 }
+                case "compiler-diagnostic":
+                    handleCompilerDiagnostic((CompilerDiagnosticMessage) response);
+                    break;
             }
         }
+    }
+
+    private static void handleCompilerDiagnostic(CompilerDiagnosticMessage request) {
+        if (request.getStartPosition() >= 0) {
+            displayMarkInEditor(request);
+        }
+    }
+
+    private static void displayMarkInEditor(CompilerDiagnosticMessage request) {
+        Position start = positionIndexer.getPositionAt(request.getStartPosition(), true);
+        if (start.line >= gutterElements.length) {
+            return;
+        }
+
+        int endPosition = request.getEndPosition();
+        if (endPosition == request.getStartPosition()) {
+            endPosition++;
+        }
+        Position end = positionIndexer.getPositionAt(endPosition, false);
+
+        String gutterClassName;
+        MarkOptions options = createJs();
+        int newGutterSeverity = 0;
+        switch (request.getKind()) {
+            case "ERROR":
+                options.setClassName("red-wave");
+                gutterClassName = "exclamation-sign gutter-error";
+                newGutterSeverity = 2;
+                break;
+            case "WARNING":
+            case "MANDATORY_WARNING":
+                options.setClassName("yellow-wave");
+                gutterClassName = "warning-sign gutter-warning";
+                newGutterSeverity = 1;
+                break;
+            default:
+                return;
+        }
+        options.setInclusiveLeft(true);
+        options.setInclusiveRight(true);
+        options.setTitle(request.getMessage());
+
+        codeMirror.markText(
+                TextLocation.create(start.line, start.column),
+                TextLocation.create(end.line, end.column),
+                options);
+
+        HTMLElement element = gutterElements[start.line];
+        if (element == null) {
+            element = HTMLDocument.current().createElement("span");
+            gutterElements[start.line] = element;
+        }
+        if (gutterSeverity[start.line] < newGutterSeverity) {
+            gutterSeverity[start.line] = newGutterSeverity;
+            element.setClassName("glyphicon glyphicon-" + gutterClassName);
+        }
+
+        String title = element.getTitle();
+        title = !title.isEmpty() ? title + "\n" + request.getMessage() : request.getMessage();
+        element.setTitle(title);
+        codeMirror.setGutterMarker(start.line, DIAGNOSTICS_GUTTER, element);
     }
 
     @JSBody(script = "return {};")

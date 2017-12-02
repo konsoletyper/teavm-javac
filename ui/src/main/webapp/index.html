@@ -24,7 +24,9 @@
     <script type="text/javascript" src="codemirror-clike.min.js"></script>
     <script type="text/javascript" src="teavm/runtime.js"></script>
     <script type="text/javascript" src="teavm/classes.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="codemirror.min.css">
+    <link rel="stylesheet" type="text/css" href="ui.css">
   </head>
   <body onload="main()">
     <div>
@@ -35,7 +37,7 @@
 }</textarea>
     </div>
     <div>
-      <button id="compile-button">Compile</button>
+      <button id="compile-button" class="btn btn-default">Compile</button>
     </div>
     <div>
       <textarea cols="100" rows="15" id="stdout" readonly></textarea>

@@ -14,18 +14,10 @@
  *  limitations under the License.
  */
 
-package org.teavm.javac.ui;
+package org.teavm.javac.ui.codemirror;
 
-import org.teavm.jso.JSBody;
 import org.teavm.jso.JSObject;
-import org.teavm.jso.dom.html.HTMLElement;
 
-public abstract class CodeMirror implements JSObject {
-    private CodeMirror() {
-    }
-
-    @JSBody(params = { "element", "config" }, script = "return CodeMirror.fromTextArea(element, config);")
-    public static native CodeMirror fromTextArea(HTMLElement element, CodeMirrorConfig config);
-
-    public abstract String getValue();
+public interface Mark extends JSObject {
+    void clear();
 }

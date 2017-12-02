@@ -14,6 +14,21 @@
  *  limitations under the License.
  */
 
-self.importScripts("compiler/target/generated/js/teavm/worker/runtime.js");
-self.importScripts("compiler/target/generated/js/teavm/worker/classes.js");
-main();
+package org.teavm.javac.ui.codemirror;
+
+import org.teavm.jso.JSObject;
+import org.teavm.jso.JSProperty;
+
+public interface MarkOptions extends JSObject {
+    @JSProperty
+    void setClassName(String className);
+
+    @JSProperty
+    void setInclusiveLeft(boolean inclusiveLeft);
+
+    @JSProperty
+    void setInclusiveRight(boolean inclusiveRight);
+
+    @JSProperty
+    void setTitle(String title);
+}

@@ -16,13 +16,12 @@
 
 package org.teavm.javac.ui;
 
-import org.teavm.jso.JSObject;
-import org.teavm.jso.JSProperty;
+public class Position {
+    public int line;
+    public int column;
 
-public interface CodeMirrorConfig extends JSObject {
-    @JSProperty
-    void setIndentUnit(int unit);
-
-    @JSProperty
-    void setLineNumbers(boolean lineNumbers);
+    public Position(int line, int column) {
+        this.line = line;
+        this.column = column;
+    }
 }

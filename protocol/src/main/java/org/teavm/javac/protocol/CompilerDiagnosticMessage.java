@@ -28,6 +28,7 @@ public interface CompilerDiagnosticMessage extends WorkerMessage {
     @JSProperty
     CompilableObject getObject();
 
+    @JSProperty
     void setObject(CompilableObject object);
 
     @JSProperty

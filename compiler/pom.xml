@@ -93,6 +93,7 @@
               <minifying>true</minifying>
               <sourceMapsGenerated>true</sourceMapsGenerated>
               <sourceFilesCopied>true</sourceFilesCopied>
+              <debugInformationGenerated>true</debugInformationGenerated>
               <optimizationLevel>ADVANCED</optimizationLevel>
             </configuration>
           </execution>

@@ -19,3 +19,21 @@ var fs = require("fs");
 if (!fs.existsSync("target/static")) {
     fs.mkdirSync("target/static");
 }
+if (!fs.existsSync("target/static/fonts")) {
+    fs.mkdirSync("target/static/fonts");
+}
+if (!fs.existsSync("target/static/css")) {
+    fs.mkdirSync("target/static/css");
+}
+
+copy("node_modules/bootstrap/dist/css/bootstrap.min.css", "target/static/css/bootstrap.min.css");
+
+var files = fs.readdirSync("node_modules/bootstrap/dist/fonts/");
+for (var i = 0; i < files.length; ++i) {
+    var fileName = files[i];
+    copy("node_modules/bootstrap/dist/fonts/" + fileName, "target/static/fonts/" + fileName);
+}
+
+function copy(from, to) {
+    fs.createReadStream(from).pipe(fs.createWriteStream(to));
+}

@@ -42,8 +42,6 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
-import org.teavm.ast.cache.InMemoryRegularMethodNodeCache;
-import org.teavm.ast.cache.MethodNodeCache;
 import org.teavm.backend.javascript.JavaScriptTarget;
 import org.teavm.classlib.impl.JCLPlugin;
 import org.teavm.diagnostics.Problem;
@@ -65,9 +63,7 @@ import org.teavm.jso.impl.JSOPlugin;
 import org.teavm.jso.typedarrays.ArrayBuffer;
 import org.teavm.jso.typedarrays.Int8Array;
 import org.teavm.model.ClassHolderSource;
-import org.teavm.model.InMemoryProgramCache;
 import org.teavm.model.MethodReference;
-import org.teavm.model.ProgramCache;
 import org.teavm.model.ValueType;
 import org.teavm.parsing.CompositeClassHolderSource;
 import org.teavm.parsing.DirectoryClasspathClassHolderSource;
@@ -199,7 +195,7 @@ public final class Client {
 
         new File("/out").mkdirs();
         JavaCompiler.CompilationTask task = compiler.getTask(out, fileManager, createDiagnosticListener(request),
-                Arrays.asList("-verbose", "-d", "/out"), null, compilationUnits);
+                Arrays.asList("-verbose", "-d", "/out", "-Xlint:all"), null, compilationUnits);
         boolean result = task.call();
         out.flush();
 
@@ -209,8 +205,10 @@ public final class Client {
     private static DiagnosticListener<? super JavaFileObject> createDiagnosticListener(WorkerMessage request) {
         return diagnostic -> {
             CompilerDiagnosticMessage response = createMessage();
-            response.setKind("compiler-diagnostic");
+            response.setCommand("compiler-diagnostic");
             response.setId(request.getId());
+
+            response.setKind(diagnostic.getKind().name());
 
             CompilableObject object = createMessage();
             object.setKind(diagnostic.getSource().getKind().name());
@@ -234,8 +232,6 @@ public final class Client {
     private static long lastPhaseTime = System.currentTimeMillis();
     private static TeaVMPhase lastPhase;
     private static ClassHolderSource stdlibClassSource;
-    private static ProgramCache programCache = new InMemoryProgramCache();
-    private static MethodNodeCache astCache = new InMemoryRegularMethodNodeCache();
 
     static {
         Properties stdlibMapping = new Properties();
@@ -258,9 +254,6 @@ public final class Client {
             TeaVM teavm = new TeaVMBuilder(jsTarget)
                     .setClassSource(new CompositeClassHolderSource(classSources))
                     .build();
-            teavm.setIncremental(true);
-            teavm.setProgramCache(programCache);
-            jsTarget.setAstCache(astCache);
 
             long pluginInstallationStart = System.currentTimeMillis();
             new JSOPlugin().install(teavm);
