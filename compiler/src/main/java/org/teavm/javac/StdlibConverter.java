@@ -67,6 +67,16 @@ public class StdlibConverter extends ClassVisitor {
         if (superName != null) {
             superName = rename(superName);
         }
+
+        switch (name) {
+            case "java/lang/Throwable":
+                superName = "java/lang/Object";
+                break;
+            case "java/lang/RuntimeException":
+                superName = "java/lang/Exception";
+                break;
+        }
+
         if (interfaces != null) {
             for (int i = 0; i < interfaces.length; ++i) {
                 interfaces[i] = rename(interfaces[i]);
