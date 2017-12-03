@@ -30,9 +30,11 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -52,6 +54,7 @@ import org.teavm.javac.protocol.CompileMessage;
 import org.teavm.javac.protocol.CompilerDiagnosticMessage;
 import org.teavm.javac.protocol.ErrorMessage;
 import org.teavm.javac.protocol.LoadStdlibMessage;
+import org.teavm.javac.protocol.TeaVMDiagnosticMessage;
 import org.teavm.javac.protocol.TeaVMPhaseMessage;
 import org.teavm.javac.protocol.WorkerMessage;
 import org.teavm.jso.JSBody;
@@ -76,6 +79,8 @@ import org.teavm.vm.TeaVMProgressListener;
 
 public final class Client {
     private static boolean isBusy;
+    private static final String SOURCE_FILE_NAME = "Main.java";
+    private static String mainClass;
 
     private Client() {
     }
@@ -89,52 +94,52 @@ public final class Client {
     private static void handleEvent(MessageEvent event) {
         WorkerMessage request = (WorkerMessage) event.getData();
         try {
-            processMessage(request);
+            processResponse(request);
         } catch (Throwable e) {
             log("Error occurred");
             e.printStackTrace();
-            Window.worker().postMessage(createErrorMessage(request, "Error occurred processing message: "
+            Window.worker().postMessage(createErrorResponse(request, "Error occurred processing message: "
                     + e.getMessage()));
         }
     }
 
     private static long initializationStartTime;
 
-    private static void processMessage(WorkerMessage message) throws Exception {
-        log("Message received: " + message.getId());
+    private static void processResponse(WorkerMessage request) throws Exception {
+        log("Message received: " + request.getId());
 
         if (isBusy) {
             log("Responded busy status");
-            Window.worker().postMessage(createErrorMessage(message, "Busy"));
+            Window.worker().postMessage(createErrorResponse(request, "Busy"));
             return;
         }
 
         isBusy = true;
-        switch (message.getCommand()) {
+        switch (request.getCommand()) {
             case "load-classlib":
-                init(message, ((LoadStdlibMessage) message).getUrl(), success -> {
+                init(request, ((LoadStdlibMessage) request).getUrl(), success -> {
                     if (success) {
-                        respondOk(message);
+                        respondOk(request);
                     }
                     isBusy = false;
                 });
                 break;
             case "compile":
-                compileAll((CompileMessage) message);
-                log("Done processing message: " + message.getId());
+                compileAll((CompileMessage) request);
+                log("Done processing message: " + request.getId());
                 isBusy = false;
                 break;
         }
     }
 
-    private static void compileAll(CompileMessage message) throws IOException {
-        createSourceFile(message.getText());
+    private static void compileAll(CompileMessage request) throws IOException {
+        createSourceFile(request.getText());
 
         CompilationResultMessage response = createMessage();
-        response.setId(message.getId());
+        response.setId(request.getId());
         response.setCommand("compilation-complete");
 
-        if (doCompile(message) && generateJavaScript(message)) {
+        if (doCompile(request) && detectMainClass(request) && generateJavaScript(request)) {
             response.setStatus("successful");
             response.setScript(readResultingFile());
         } else {
@@ -151,7 +156,7 @@ public final class Client {
         Window.worker().postMessage(response);
     }
 
-    private static <T extends ErrorMessage> T createErrorMessage(WorkerMessage request, String text) {
+    private static <T extends ErrorMessage> T createErrorResponse(WorkerMessage request, String text) {
         T message = createMessage();
         message.setId(request.getId());
         message.setCommand("error");
@@ -171,7 +176,7 @@ public final class Client {
                 try {
                     createStdlib();
                 } catch (IOException e) {
-                    Window.worker().postMessage(createErrorMessage(request, "Error creating stdlib: "
+                    Window.worker().postMessage(createErrorResponse(request, "Error creating stdlib: "
                             + e.getMessage()));
                     log("Error initializing stdlib: " + e.getMessage());
                     success = false;
@@ -190,9 +195,13 @@ public final class Client {
         JavaCompiler compiler = JavacTool.create();
         StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
         Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(
-                Arrays.asList(new File("/Hello.java")));
+                Arrays.asList(new File("/" + SOURCE_FILE_NAME)));
         OutputStreamWriter out = new OutputStreamWriter(System.out);
 
+        File outDir = new File("/out");
+        if (outDir.exists()) {
+            removeDirectory(outDir);
+        }
         new File("/out").mkdirs();
         JavaCompiler.CompilationTask task = compiler.getTask(out, fileManager, createDiagnosticListener(request),
                 Arrays.asList("-verbose", "-d", "/out", "-Xlint:all"), null, compilationUnits);
@@ -241,6 +250,26 @@ public final class Client {
         stdlibClassSource = new DirectoryClasspathClassHolderSource(new File("/teavm-stdlib"), stdlibMapping);
     }
 
+    private static boolean detectMainClass(WorkerMessage request) throws IOException {
+        Set<String> candidates = new HashSet<>();
+        detectMainClass(new File("/out"), candidates);
+        if (candidates.size() != 1) {
+            String text = candidates.isEmpty() ? "Main method not found" : "Multiple main methods found";
+            TeaVMDiagnosticMessage message = createMessage();
+            message.setId(request.getId());
+            message.setCommand("diagnostic");
+            message.setSeverity("ERROR");
+            message.setText(text);
+            message.setFileName(null);
+            Window.worker().postMessage(message);
+            return false;
+        }
+
+        mainClass = candidates.iterator().next();
+        mainClass = mainClass.replace('/', '.');
+        return true;
+    }
+
     private static boolean generateJavaScript(WorkerMessage request) {
         try {
             long start = System.currentTimeMillis();
@@ -261,7 +290,7 @@ public final class Client {
             new JCLPlugin().install(teavm);
             log("Plugins loaded in " + (System.currentTimeMillis() - pluginInstallationStart) + " ms");
 
-            teavm.entryPoint("main", new MethodReference("Hello", "main", ValueType.parse(String[].class),
+            teavm.entryPoint("main", new MethodReference(mainClass, "main", ValueType.parse(String[].class),
                     ValueType.VOID))
                     .withArrayValue(1, "java.lang.String");
             File outDir = new File("/js-out");
@@ -303,7 +332,7 @@ public final class Client {
                     hasSevere = true;
                 }
             }
-            TeaVMProblemRenderer.describeProblems(request, "Hello.java", teavm);
+            TeaVMProblemRenderer.describeProblems(request, SOURCE_FILE_NAME, teavm);
 
             long end = System.currentTimeMillis();
             log("TeaVM complete in " + (end - start) + " ms");
@@ -334,7 +363,7 @@ public final class Client {
                 success = true;
             } catch (IOException e) {
                 success = false;
-                Window.worker().postMessage(createErrorMessage(request, "Error occurred downloading classlib: "
+                Window.worker().postMessage(createErrorResponse(request, "Error occurred downloading classlib: "
                         + e.getMessage()));
             }
             next.accept(success);
@@ -426,10 +455,38 @@ public final class Client {
     }
 
     private static void createSourceFile(String content) throws IOException {
-        File file = new File("/Hello.java");
+        File file = new File("/" + SOURCE_FILE_NAME);
 
         try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"))) {
             writer.write(content);
+        }
+    }
+
+    private static void removeDirectory(File dir) {
+        for (File file : dir.listFiles()) {
+            if (file.isDirectory()) {
+                removeDirectory(file);
+            } else {
+                file.delete();
+            }
+        }
+        dir.delete();
+    }
+
+    private static void detectMainClass(File dir, Set<String> mainClasses) throws IOException {
+        for (File file : dir.listFiles()) {
+            if (file.isDirectory()) {
+                detectMainClass(file, mainClasses);
+            } else if (file.getName().endsWith(".class")) {
+                MainMethodFinder finder = new MainMethodFinder();
+                try (InputStream input = new FileInputStream(file)) {
+                    ClassReader reader = new ClassReader(input);
+                    reader.accept(finder, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG);
+                }
+                if (finder.className != null && finder.hasMainMethod) {
+                    mainClasses.add(finder.className);
+                }
+            }
         }
     }
 
