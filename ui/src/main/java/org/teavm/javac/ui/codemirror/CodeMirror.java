@@ -30,6 +30,8 @@ public abstract class CodeMirror implements JSObject {
 
     public abstract String getValue();
 
+    public abstract void setValue(String value);
+
     public abstract int lineCount();
 
     public abstract JSArrayReader<Mark> getAllMarks();

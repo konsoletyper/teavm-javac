@@ -22,6 +22,7 @@ import org.teavm.javac.protocol.CompileMessage;
 import org.teavm.javac.protocol.CompilerDiagnosticMessage;
 import org.teavm.javac.protocol.ErrorMessage;
 import org.teavm.javac.protocol.LoadStdlibMessage;
+import org.teavm.javac.protocol.TeaVMDiagnosticMessage;
 import org.teavm.javac.protocol.WorkerMessage;
 import org.teavm.javac.ui.codemirror.CodeMirror;
 import org.teavm.javac.ui.codemirror.CodeMirrorConfig;
@@ -49,6 +50,8 @@ public final class Client {
     }
 
     private static final String DIAGNOSTICS_GUTTER = "diagnostics";
+    private static final int WARNING = 1;
+    private static final int ERROR = 2;
 
     private static Worker worker;
     private static HTMLInputElement compileButton = HTMLDocument.current().getElementById("compile-button").cast();
@@ -86,6 +89,10 @@ public final class Client {
         config.setLineNumbers(true);
         config.setGutters(new String[] { DIAGNOSTICS_GUTTER, "CodeMirror-linenumbers" });
         codeMirror = CodeMirror.fromTextArea(HTMLDocument.current().getElementById("source-code"), config);
+
+        loadCode();
+        Window.current().listenBeforeOnload(e -> saveCode());
+        Window.current().listenBlur(e -> saveCode());
     }
 
     private static void initStdout() {
@@ -94,13 +101,29 @@ public final class Client {
             FrameCommand request = (FrameCommand) JSON.parse(((JSString) event.getData()).stringValue());
             if (request.getCommand().equals("stdout")) {
                 FrameStdoutCommand stdoutCommand = (FrameStdoutCommand) request;
-                HTMLElement lineElem = HTMLDocument.current().createElement("div").withText(stdoutCommand.getLine());
-                stdoutElement.appendChild(lineElem);
-
-                stdoutElement.setScrollTop(Math.max(0, stdoutElement.getScrollHeight()
-                        - stdoutElement.getClientHeight()));
+                addToConsole(stdoutCommand.getLine(), false);
             }
         });
+    }
+
+    private static void addTextToConsole(String text, boolean compileTime) {
+        int last = 0;
+        for (int i = 0; i < text.length(); ++i) {
+            if (text.charAt(i) == '\n') {
+                addToConsole(text.substring(last, i), compileTime);
+                last = i + 1;
+            }
+        }
+        addToConsole(text.substring(last), compileTime);
+    }
+
+    private static void addToConsole(String line, boolean compileTime) {
+        HTMLElement lineElem = HTMLDocument.current().createElement("div").withText(line);
+        if (compileTime) {
+            lineElem.setClassName("compile-time");
+        }
+        stdoutElement.appendChild(lineElem);
+        stdoutElement.setScrollTop(Math.max(0, stdoutElement.getScrollHeight() - stdoutElement.getClientHeight()));
     }
 
     private static boolean init() {
@@ -136,6 +159,8 @@ public final class Client {
     }
 
     private static String compile() {
+        stdoutElement.clear();
+
         JSArrayReader<Mark> allMarks = codeMirror.getAllMarks();
         for (int i = 0; i < allMarks.getLength(); ++i) {
             allMarks.get(i).clear();
@@ -160,13 +185,67 @@ public final class Client {
                 case "compiler-diagnostic":
                     handleCompilerDiagnostic((CompilerDiagnosticMessage) response);
                     break;
+                case "diagnostic":
+                    handleDiagnostic((TeaVMDiagnosticMessage) response);
+                    break;
             }
         }
     }
 
     private static void handleCompilerDiagnostic(CompilerDiagnosticMessage request) {
+        StringBuilder sb = new StringBuilder();
+        switch (request.getKind()) {
+            case "ERROR":
+                sb.append("ERROR ");
+                break;
+            case "WARNING":
+            case "MANDATORY_WARNING":
+                sb.append("WARNING ");
+                break;
+        }
+
+        if (request.getObject() != null) {
+            sb.append("at " + request.getObject().getName());
+            if (request.getLineNumber() >= 0) {
+                sb.append("(").append(request.getLineNumber() + 1).append(":").append(request.getColumnNumber() + 1)
+                        .append(")");
+            }
+            sb.append(' ');
+        }
+        sb.append(request.getMessage());
+        addTextToConsole(sb.toString(), true);
+
         if (request.getStartPosition() >= 0) {
             displayMarkInEditor(request);
+        }
+    }
+
+    private static void handleDiagnostic(TeaVMDiagnosticMessage request) {
+        StringBuilder sb = new StringBuilder(request.getSeverity()).append(' ');
+
+        if (request.getFileName() != null) {
+            sb.append("at " + request.getFileName());
+            if (request.getLineNumber() >= 0) {
+                sb.append(":").append(request.getLineNumber() + 1);
+            }
+            sb.append(' ');
+        }
+        sb.append(request.getText());
+        addTextToConsole(sb.toString(), true);
+
+        if (request.getLineNumber() >= 0) {
+            int severity;
+            switch (request.getSeverity()) {
+                case "ERROR":
+                    severity = ERROR;
+                    break;
+                case "WARNING":
+                    severity = WARNING;
+                    break;
+                default:
+                    return;
+            }
+            addGutterDiagnostic(severity, request.getLineNumber(), request.getText());
         }
     }
 
@@ -182,20 +261,17 @@ public final class Client {
         }
         Position end = positionIndexer.getPositionAt(endPosition, false);
 
-        String gutterClassName;
         MarkOptions options = createJs();
-        int newGutterSeverity = 0;
+        int gutterSeverity;
         switch (request.getKind()) {
             case "ERROR":
                 options.setClassName("red-wave");
-                gutterClassName = "exclamation-sign gutter-error";
-                newGutterSeverity = 2;
+                gutterSeverity = 2;
                 break;
             case "WARNING":
             case "MANDATORY_WARNING":
                 options.setClassName("yellow-wave");
-                gutterClassName = "warning-sign gutter-warning";
-                newGutterSeverity = 1;
+                gutterSeverity = 1;
                 break;
             default:
                 return;
@@ -209,20 +285,38 @@ public final class Client {
                 TextLocation.create(end.line, end.column),
                 options);
 
-        HTMLElement element = gutterElements[start.line];
-        if (element == null) {
-            element = HTMLDocument.current().createElement("span");
-            gutterElements[start.line] = element;
-        }
-        if (gutterSeverity[start.line] < newGutterSeverity) {
-            gutterSeverity[start.line] = newGutterSeverity;
-            element.setClassName("glyphicon glyphicon-" + gutterClassName);
+        addGutterDiagnostic(gutterSeverity, start.line, request.getMessage());
+    }
+
+    private static void addGutterDiagnostic(int severity, int line, String message) {
+        if (gutterSeverity[line] < severity) {
+            gutterSeverity[line] = severity;
         }
 
+        String gutterClassName;
+        switch (gutterSeverity[line]) {
+            case ERROR:
+                gutterClassName = "exclamation-sign gutter-error";
+                break;
+            case WARNING:
+                gutterClassName = "warning-sign gutter-warning";
+                break;
+            default:
+                return;
+        }
+
+        HTMLElement element = gutterElements[line];
+        if (element == null) {
+            element = HTMLDocument.current().createElement("span");
+            gutterElements[line] = element;
+        }
+
+        element.setClassName("glyphicon glyphicon-" + gutterClassName);
+
         String title = element.getTitle();
-        title = !title.isEmpty() ? title + "\n" + request.getMessage() : request.getMessage();
+        title = !title.isEmpty() ? title + "\n" + message : message;
         element.setTitle(title);
-        codeMirror.setGutterMarker(start.line, DIAGNOSTICS_GUTTER, element);
+        codeMirror.setGutterMarker(line, DIAGNOSTICS_GUTTER, element);
     }
 
     @JSBody(script = "return {};")
@@ -276,8 +370,6 @@ public final class Client {
         frame.setHeight("1px");
         frame.setClassName("result");
 
-        stdoutElement.clear();
-
         listener = event -> {
             FrameCommand command = (FrameCommand) JSON.parse(((JSString) event.getData()).stringValue());
             if (command.getCommand().equals("ready")) {
@@ -292,5 +384,16 @@ public final class Client {
         Window.current().addEventListener("message", listener);
 
         document.getElementById("result-container").appendChild(frame);
+    }
+
+    private static void loadCode() {
+        String code = Window.current().getLocalStorage().getItem("teavm-java-code");
+        if (code != null) {
+            codeMirror.setValue(code);
+        }
+    }
+
+    private static void saveCode() {
+        Window.current().getLocalStorage().setItem("teavm-java-code", codeMirror.getValue());
     }
 }

@@ -47,6 +47,7 @@ public final class TeaVMProblemRenderer {
             message.setLineNumber(-1);
             message.setCommand("diagnostic");
             message.setSeverity(problem.getSeverity().name());
+            message.setFileName(null);
 
             renderCallStack(fileName, message, cg, problem.getLocation(), sb);
 
@@ -61,7 +62,7 @@ public final class TeaVMProblemRenderer {
             }
 
             message.setText(sb.toString());
-            Window.current().postMessage(message);
+            Window.worker().postMessage(message);
         }
     }
 
