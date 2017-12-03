@@ -34,6 +34,9 @@
         <span class="glyphicon glyphicon-play" aria-hidden="true"></span>
         Run
       </button>
+      <div class="toolbar-right">
+        <a href="https://github.com/konsoletyper/teavm-javac" class="github-link" title="Source code"></a>
+      </div>
     </div>
     <div class="content">
       <div class="editor-container">
@@ -60,15 +63,5 @@ public class Hello {
         </div>
       </div>
     </div>
-
-    <script type="text/javascript">
-      var stdout = document.getElementById("stdout");
-      window.addEventListener("message", function (event) {
-          var request = JSON.parse(event.data);
-          if (request.command === "stdout") {
-              stdout.value = stdout.value += request.line + "\n";
-          }
-      })
-    </script>
   </body>
 </html>

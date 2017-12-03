@@ -128,3 +128,24 @@
     border-radius: 3px;
     text-transform: uppercase;
 }
+
+.toolbar-right {
+    position: absolute;
+    right: 6px;
+    bottom: 0;
+    top: 0;
+    line-height: 44px;
+}
+
+.github-link {
+    margin-top: 6px;
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    background-image: url("github-mark-blue.png");
+    background-size: contain;
+}
+
+.github-link:hover {
+    background-image: url("github-mark-red.png");
+}
