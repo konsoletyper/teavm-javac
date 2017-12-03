@@ -29,18 +29,36 @@
     <link rel="stylesheet" type="text/css" href="ui.css">
   </head>
   <body onload="main()">
-    <div>
-      <textarea cols="80" rows="20" id="source-code">public class Hello {
+    <div class="toolbar">
+      <button id="compile-button" class="btn btn-default">
+        <span class="glyphicon glyphicon-play" aria-hidden="true"></span>
+        Run
+      </button>
+    </div>
+    <div class="content">
+      <div class="editor-container">
+        <textarea cols="80" rows="20" id="source-code">import org.teavm.jso.dom.html.*;
+
+public class Hello {
     public static void main(String[] args) {
         System.out.println("Hello, world!");
+        HTMLDocument document = HTMLDocument.current();
+        HTMLElement elem = document.createElement("p").withText("Hello, web!");
+        document.getBody().appendChild(elem);
     }
 }</textarea>
-    </div>
-    <div>
-      <button id="compile-button" class="btn btn-default">Compile</button>
-    </div>
-    <div>
-      <textarea cols="100" rows="15" id="stdout" readonly></textarea>
+        <span class="panel-label">java</span>
+      </div>
+      <div class="out-container">
+        <div class="result-container" id="result-container">
+          <iframe id="result" class="result"></iframe>
+          <span class="panel-label">result</span>
+        </div>
+        <div class="stdout-container">
+          <div id="stdout" class="stdout"></div>
+          <span class="panel-label">console</span>
+        </div>
+      </div>
     </div>
 
     <script type="text/javascript">

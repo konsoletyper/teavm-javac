@@ -52,6 +52,7 @@ public final class Client {
 
     private static Worker worker;
     private static HTMLInputElement compileButton = HTMLDocument.current().getElementById("compile-button").cast();
+    private static HTMLElement stdoutElement;
     private static int lastId;
     private static CodeMirror codeMirror;
     private static PositionIndexer positionIndexer;
@@ -59,7 +60,9 @@ public final class Client {
     private static int[] gutterSeverity;
 
     public static void main(String[] args) {
+        frame = (HTMLIFrameElement) HTMLDocument.current().getElementById("result");
         initEditor();
+        initStdout();
         init();
         compileButton.addEventListener("click", event -> {
             new Thread(() -> {
@@ -83,6 +86,21 @@ public final class Client {
         config.setLineNumbers(true);
         config.setGutters(new String[] { DIAGNOSTICS_GUTTER, "CodeMirror-linenumbers" });
         codeMirror = CodeMirror.fromTextArea(HTMLDocument.current().getElementById("source-code"), config);
+    }
+
+    private static void initStdout() {
+        stdoutElement = HTMLDocument.current().getElementById("stdout");
+        Window.current().addEventListener("message", (MessageEvent event) -> {
+            FrameCommand request = (FrameCommand) JSON.parse(((JSString) event.getData()).stringValue());
+            if (request.getCommand().equals("stdout")) {
+                FrameStdoutCommand stdoutCommand = (FrameStdoutCommand) request;
+                HTMLElement lineElem = HTMLDocument.current().createElement("div").withText(stdoutCommand.getLine());
+                stdoutElement.appendChild(lineElem);
+
+                stdoutElement.setScrollTop(Math.max(0, stdoutElement.getScrollHeight()
+                        - stdoutElement.getClientHeight()));
+            }
+        });
     }
 
     private static boolean init() {
@@ -256,9 +274,9 @@ public final class Client {
         frame.setSourceAddress("frame.html");
         frame.setWidth("1px");
         frame.setHeight("1px");
+        frame.setClassName("result");
 
-        HTMLInputElement stdout = (HTMLInputElement) document.getElementById("stdout");
-        stdout.setValue("");
+        stdoutElement.clear();
 
         listener = event -> {
             FrameCommand command = (FrameCommand) JSON.parse(((JSString) event.getData()).stringValue());
@@ -273,6 +291,6 @@ public final class Client {
         };
         Window.current().addEventListener("message", listener);
 
-        document.getBody().appendChild(frame);
+        document.getElementById("result-container").appendChild(frame);
     }
 }
