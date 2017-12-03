@@ -16,9 +16,9 @@
 
 package org.teavm.javac;
 
-import jdk.internal.org.objectweb.asm.Opcodes;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 public class MainMethodFinder extends ClassVisitor {
     public String className;

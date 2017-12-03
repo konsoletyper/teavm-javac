@@ -26,7 +26,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <java.version>1.8</java.version>
-    <teavm.version>0.6.0-SNAPSHOT</teavm.version>
+    <teavm.version>0.6.0-dev-451</teavm.version>
     <jdk.langtools.revision>53092d863cb6</jdk.langtools.revision>
   </properties>
 
@@ -37,6 +37,20 @@
     <module>compiler</module>
     <module>ui</module>
   </modules>
+
+  <repositories>
+    <repository>
+      <id>teavm-dev</id>
+      <url>https://dl.bintray.com/konsoletyper/teavm</url>
+    </repository>
+  </repositories>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>teavm-dev</id>
+      <url>https://dl.bintray.com/konsoletyper/teavm</url>
+    </pluginRepository>
+  </pluginRepositories>
 
   <dependencyManagement>
     <dependencies>
