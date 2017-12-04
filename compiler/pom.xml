@@ -130,10 +130,10 @@
         <version>3.0.2</version>
         <executions>
           <execution>
-            <id>copy</id>
+            <id>unpack</id>
             <phase>prepare-package</phase>
             <goals>
-              <goal>copy</goal>
+              <goal>unpack</goal>
             </goals>
             <configuration>
               <artifactItems>
@@ -141,12 +141,33 @@
                   <groupId>org.teavm.javac</groupId>
                   <artifactId>teavm-javac-classlib</artifactId>
                   <version>${project.version}</version>
-                  <outputDirectory>${project.build.directory}/ext-libs/</outputDirectory>
-                  <destFileName>classlib.zip</destFileName>
+                  <outputDirectory>${project.build.directory}/classlib-unpacked/</outputDirectory>
+                  <includes>**</includes>
                 </artifactItem>
               </artifactItems>
               <overWriteIfNewer>true</overWriteIfNewer>
             </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>1.8</version>
+        <executions>
+          <execution>
+            <phase>prepare-package</phase>
+            <configuration>
+              <tasks>
+                <mkdir dir="${project.build.directory}/ext-libs/"/>
+                <zip basedir="${project.build.directory}/classlib-unpacked/"
+                     destfile="${project.build.directory}/ext-libs/classlib.txt"
+                     level="0"/>
+              </tasks>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
           </execution>
         </executions>
       </plugin>

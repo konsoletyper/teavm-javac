@@ -19,7 +19,8 @@
   <head>
     <meta charset="UTF-8">
     <meta property="workerLocation" content="worker.js">
-    <meta property="stdlibLocation" content="classlib.zip">
+    <meta property="stdlibLocation" content="classlib.txt">
+    <title>Online TeaVM compiler</title>
     <script type="text/javascript" src="codemirror.min.js"></script>
     <script type="text/javascript" src="codemirror-clike.min.js"></script>
     <script type="text/javascript" src="teavm/runtime.js"></script>
@@ -27,6 +28,7 @@
     <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="codemirror.min.css">
     <link rel="stylesheet" type="text/css" href="ui.css">
+    <link rel="icon" type="image/png" href="favicon.png">
   </head>
   <body onload="main()">
     <div class="toolbar">
@@ -42,7 +44,7 @@
       <div class="editor-container">
         <textarea cols="80" rows="20" id="source-code">import org.teavm.jso.dom.html.*;
 
-public class Hello {
+public class Main {
     public static void main(String[] args) {
         System.out.println("Hello, world!");
         HTMLDocument document = HTMLDocument.current();
