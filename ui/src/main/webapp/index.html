@@ -32,9 +32,13 @@
   </head>
   <body onload="main()">
     <div class="toolbar">
-      <button id="compile-button" class="btn btn-default">
+      <button id="compile-button" class="btn btn-default" disabled>
         <span class="glyphicon glyphicon-play" aria-hidden="true"></span>
         Run
+      </button>
+      <button id="choose-example" class="btn btn-default" disabled>
+        <span class="glyphicon glyphicon-education" aria-hidden="true"></span>
+        Examples
       </button>
       <div class="toolbar-right">
         <a href="https://github.com/konsoletyper/teavm-javac" class="github-link" title="Source code"></a>
@@ -62,6 +66,26 @@ public class Main {
         <div class="stdout-container">
           <div id="stdout" class="stdout"></div>
           <span class="panel-label">console</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" tabindex="-1" role="dialog" id="examples">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close" id="cancel-example-selection">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <h4 class="modal-title">Code examples</h4>
+          </div>
+          <div class="modal-body examples-container">
+            <div id="examples-content" class="examples-content">
+            </div>
+            <div id="examples-content-progress" class="loading">
+              Loading... Please, wait.
+            </div>
+          </div>
         </div>
       </div>
     </div>

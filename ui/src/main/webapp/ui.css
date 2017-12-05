@@ -149,3 +149,45 @@
 .github-link:hover {
     background-image: url("github-mark-red.png");
 }
+
+.examples-container {
+    max-height: 400px;
+}
+
+.loading {
+    background:rgba(0,0,0,0.2);
+    font-weight: bold;
+    font-size: 200%;
+    padding: 2em;
+    color: white;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: none;
+}
+
+.examples-content h3 {
+    border-bottom: 1px dotted #dddddd;
+    margin-top: 0.5em;
+    margin-bottom: 0.3em;
+    padding-bottom: 0.1em;
+}
+
+.examples-content .example-item {
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+}
+
+.examples-content .example-item span {
+    color: blue;
+    cursor: pointer;
+    border-bottom: 1px dashed blue;
+}
+
+.examples-content .example-item span:hover {
+    color: blue;
+    cursor: pointer;
+    border-bottom-color: rgb(80, 80, 255);
+}
