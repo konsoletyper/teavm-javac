@@ -20,7 +20,7 @@
     <meta charset="UTF-8">
     <meta property="workerLocation" content="worker.js">
     <meta property="stdlibLocation" content="classlib.txt">
-    <title>Online TeaVM compiler</title>
+    <title>TeaVM &mdash; Online Java compiler (beta)</title>
     <script type="text/javascript" src="codemirror.min.js"></script>
     <script type="text/javascript" src="codemirror-clike.min.js"></script>
     <script type="text/javascript" src="teavm/runtime.js"></script>
@@ -46,14 +46,9 @@
     </div>
     <div class="content">
       <div class="editor-container">
-        <textarea cols="80" rows="20" id="source-code">import org.teavm.jso.dom.html.*;
-
-public class Main {
+        <textarea cols="80" rows="20" id="source-code">public class Main {
     public static void main(String[] args) {
         System.out.println("Hello, world!");
-        HTMLDocument document = HTMLDocument.current();
-        HTMLElement elem = document.createElement("p").withText("Hello, web!");
-        document.getBody().appendChild(elem);
     }
 }</textarea>
         <span class="panel-label">java</span>
