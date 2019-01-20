@@ -36,6 +36,12 @@
 
     <dependency>
       <groupId>org.teavm</groupId>
+      <artifactId>teavm-interop</artifactId>
+      <version>${teavm.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.teavm</groupId>
       <artifactId>teavm-jso-apis</artifactId>
       <version>${teavm.version}</version>
       <scope>provided</scope>
@@ -109,9 +115,9 @@
             <configuration>
               <targetDirectory>${project.build.directory}/generated/js/teavm</targetDirectory>
               <mainClass>org.teavm.javac.ui.Client</mainClass>
-              <minifying>true</minifying>
-              <sourceMapsGenerated>true</sourceMapsGenerated>
-              <sourceFilesCopied>true</sourceFilesCopied>
+              <minifying>${teavm.obfuscated}</minifying>
+              <sourceMapsGenerated>${teavm.debug}</sourceMapsGenerated>
+              <sourceFilesCopied>${teavm.debug}</sourceFilesCopied>
               <optimizationLevel>ADVANCED</optimizationLevel>
             </configuration>
           </execution>

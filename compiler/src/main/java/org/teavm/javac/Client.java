@@ -66,8 +66,6 @@ import org.teavm.jso.impl.JSOPlugin;
 import org.teavm.jso.typedarrays.ArrayBuffer;
 import org.teavm.jso.typedarrays.Int8Array;
 import org.teavm.model.ClassHolderSource;
-import org.teavm.model.MethodReference;
-import org.teavm.model.ValueType;
 import org.teavm.parsing.CompositeClassHolderSource;
 import org.teavm.parsing.DirectoryClasspathClassHolderSource;
 import org.teavm.platform.plugin.PlatformPlugin;
@@ -290,9 +288,7 @@ public final class Client {
             new JCLPlugin().install(teavm);
             log("Plugins loaded in " + (System.currentTimeMillis() - pluginInstallationStart) + " ms");
 
-            teavm.entryPoint("main", new MethodReference(mainClass, "main", ValueType.parse(String[].class),
-                    ValueType.VOID))
-                    .withArrayValue(1, "java.lang.String");
+            teavm.entryPoint(mainClass);
             File outDir = new File("/js-out");
             outDir.mkdirs();
 

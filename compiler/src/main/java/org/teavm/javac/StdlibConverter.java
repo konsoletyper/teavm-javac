@@ -106,6 +106,15 @@ public class StdlibConverter extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+        if (className != null && className.equals("java/lang/System")) {
+            if (name.equals("out") || name.equals("err") || name.equals("in")) {
+                FieldVisitor fv = super.visitField(access, name, renameDesc(Type.getReturnType(desc).getDescriptor()),
+                        null, null);
+                fv.visitEnd();
+                return null;
+            }
+        }
+
         if ((access & Opcodes.ACC_PUBLIC) == 0 && ((access & Opcodes.ACC_PROTECTED) == 0)) {
             return null;
         }

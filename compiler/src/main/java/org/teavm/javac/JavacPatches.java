@@ -18,16 +18,29 @@ package org.teavm.javac;
 
 import java.lang.reflect.Method;
 import java.util.Optional;
-import org.teavm.diagnostics.Diagnostics;
-import org.teavm.model.*;
-import org.teavm.model.instructions.*;
+import org.teavm.model.BasicBlock;
+import org.teavm.model.ClassHolder;
+import org.teavm.model.ClassHolderTransformer;
+import org.teavm.model.ClassHolderTransformerContext;
+import org.teavm.model.FieldReference;
+import org.teavm.model.Instruction;
+import org.teavm.model.MethodDescriptor;
+import org.teavm.model.MethodHolder;
+import org.teavm.model.Program;
+import org.teavm.model.ValueType;
+import org.teavm.model.Variable;
+import org.teavm.model.instructions.ExitInstruction;
+import org.teavm.model.instructions.GetFieldInstruction;
+import org.teavm.model.instructions.IntegerConstantInstruction;
+import org.teavm.model.instructions.NullConstantInstruction;
+import org.teavm.model.instructions.PutFieldInstruction;
 import org.teavm.model.optimization.ConstantConditionElimination;
 import org.teavm.model.optimization.GlobalValueNumbering;
-import org.teavm.model.optimization.UnreachableBasicBlockElimination;
+import org.teavm.model.optimization.UnreachableBasicBlockEliminator;
 
 public class JavacPatches implements ClassHolderTransformer {
     @Override
-    public void transformClass(ClassHolder cls, ClassReaderSource innerSource, Diagnostics diagnostics) {
+    public void transformClass(ClassHolder cls, ClassHolderTransformerContext context) {
         switch (cls.getName()) {
             case "com.sun.tools.javac.main.JavaCompiler":
                 processJavaCompiler(cls);
@@ -41,7 +54,7 @@ public class JavacPatches implements ClassHolderTransformer {
             case "com.sun.tools.javac.file.RegularFileObject":
                 processRegularFileObject(cls);
                 break;
-            case "org.mozilla.javascript.Kit":
+            case "org.teavm.rhino.javascript.Kit":
                 processKit(cls);
                 break;
         }
@@ -146,11 +159,12 @@ public class JavacPatches implements ClassHolderTransformer {
                 }
             }
 
+            MethodDescriptor methodDescriptor = method.get().getDescriptor();
             boolean changed;
             do {
                 changed = new GlobalValueNumbering(true).optimize(program)
-                        | new ConstantConditionElimination().optimize(null, program)
-                        | new UnreachableBasicBlockElimination().optimize(null, program);
+                        | new ConstantConditionElimination().optimize(methodDescriptor, program);
+                new UnreachableBasicBlockEliminator().optimize(program);
             } while (changed);
         }
     }

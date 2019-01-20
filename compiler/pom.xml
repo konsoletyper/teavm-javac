@@ -90,10 +90,10 @@
             <configuration>
               <targetDirectory>${project.build.directory}/generated/js/teavm/worker</targetDirectory>
               <mainClass>org.teavm.javac.Client</mainClass>
-              <minifying>true</minifying>
-              <sourceMapsGenerated>true</sourceMapsGenerated>
-              <sourceFilesCopied>true</sourceFilesCopied>
-              <debugInformationGenerated>true</debugInformationGenerated>
+              <minifying>${teavm.obfuscated}</minifying>
+              <sourceMapsGenerated>${teavm.debug}</sourceMapsGenerated>
+              <sourceFilesCopied>${teavm.debug}</sourceFilesCopied>
+              <debugInformationGenerated>${teavm.debug}</debugInformationGenerated>
               <optimizationLevel>ADVANCED</optimizationLevel>
             </configuration>
           </execution>

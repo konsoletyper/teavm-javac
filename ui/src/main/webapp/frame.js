@@ -41,11 +41,21 @@ function start() {
 }
 
 var $stdoutBuffer = "";
-function $rt_putStdout(ch) {
+function $rt_putStdoutCustom(ch) {
     if (ch === 0xA) {
-        window.parent.postMessage(JSON.stringify({ command: "stdout", line: $rt_stdoutBuffer }), "*");
-        $rt_stdoutBuffer = "";
+        window.parent.postMessage(JSON.stringify({ command: "stdout", line: $stdoutBuffer }), "*");
+        $stdoutBuffer = "";
     } else {
-        $rt_stdoutBuffer += String.fromCharCode(ch);
+        $stdoutBuffer += String.fromCharCode(ch);
+    }
+}
+
+var $stderrBuffer = "";
+function $rt_putStderrCustom(ch) {
+    if (ch === 0xA) {
+        window.parent.postMessage(JSON.stringify({ command: "stderr", line: $stderrBuffer }), "*");
+        $stderrBuffer = "";
+    } else {
+        $stderrBuffer += String.fromCharCode(ch);
     }
 }
