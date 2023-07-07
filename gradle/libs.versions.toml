@@ -1,0 +1,12 @@
+[versions]
+
+teavm = "0.9.0-dev-7"
+
+[libraries]
+
+teavm-core = { module = "org.teavm:teavm-core", version.ref = "teavm" }
+
+[plugins]
+
+teavm = { id = "org.teavm", version.ref = "teavm" }
+download = { id = "de.undercouch.download", version = "5.4.0" }

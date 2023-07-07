@@ -1,0 +1,18 @@
+plugins {
+    id "java"
+    alias libs.plugins.teavm
+}
+
+dependencies {
+    implementation project(":javac")
+}
+
+compileJava {
+    options.compilerArgs.addAll("--limit-modules", "java.base")
+}
+
+teavm {
+    all {
+        mainClass = "org.teavm.javac.Client"
+    }
+}
