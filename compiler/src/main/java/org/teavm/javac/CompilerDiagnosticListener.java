@@ -1,5 +1,5 @@
 /*
- *  Copyright 2017 Alexey Andreev.
+ *  Copyright 2025 Alexey Andreev.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -14,21 +14,12 @@
  *  limitations under the License.
  */
 
-package org.teavm.javac.protocol;
+package org.teavm.javac;
 
-import org.teavm.jso.JSProperty;
-import org.teavm.jso.typedarrays.Int8Array;
+import org.teavm.jso.JSFunctor;
+import org.teavm.jso.JSObject;
 
-public interface CompilationResultMessage extends WorkerMessage {
-    @JSProperty
-    String getStatus();
-
-    @JSProperty
-    void setStatus(String status);
-
-    @JSProperty
-    Int8Array getScript();
-
-    @JSProperty
-    void setScript(Int8Array script);
+@JSFunctor
+public interface CompilerDiagnosticListener extends JSObject {
+    void onDiagnostic(BaseDiagnostic diagnostic);
 }

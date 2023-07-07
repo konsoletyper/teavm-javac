@@ -1,5 +1,5 @@
 /*
- *  Copyright 2017 Alexey Andreev.
+ *  Copyright 2025 Alexey Andreev.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -14,21 +14,21 @@
  *  limitations under the License.
  */
 
-package org.teavm.javac.protocol;
+package org.teavm.classlib.java.text;
 
-import org.teavm.jso.JSProperty;
-import org.teavm.jso.typedarrays.Int8Array;
+public final class TNormalizer {
+    public enum Form {
+        NFD,
+        NFC,
+        NFKD,
+        NFKC
+    }
 
-public interface CompilationResultMessage extends WorkerMessage {
-    @JSProperty
-    String getStatus();
+    public static boolean isNormalized(CharSequence csq, Form form) {
+        return true;
+    }
 
-    @JSProperty
-    void setStatus(String status);
-
-    @JSProperty
-    Int8Array getScript();
-
-    @JSProperty
-    void setScript(Int8Array script);
+    public static String normalize(CharSequence csq, Form form) {
+        return csq.toString();
+    }
 }

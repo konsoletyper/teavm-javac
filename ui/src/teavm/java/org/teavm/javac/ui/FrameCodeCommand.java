@@ -14,21 +14,15 @@
  *  limitations under the License.
  */
 
-package org.teavm.javac.protocol;
+package org.teavm.javac.ui;
 
 import org.teavm.jso.JSProperty;
 import org.teavm.jso.typedarrays.Int8Array;
 
-public interface CompilationResultMessage extends WorkerMessage {
+public interface FrameCodeCommand extends FrameCommand {
     @JSProperty
-    String getStatus();
+    Int8Array getCode();
 
     @JSProperty
-    void setStatus(String status);
-
-    @JSProperty
-    Int8Array getScript();
-
-    @JSProperty
-    void setScript(Int8Array script);
+    void setCode(Int8Array code);
 }

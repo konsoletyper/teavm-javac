@@ -1,0 +1,119 @@
+plugins {
+    alias libs.plugins.download
+    id "java"
+}
+
+def revision = providers.gradleProperty("jdk.revision").get()
+
+def downloadJDK = tasks.register("downloadJDK", Download) {
+    src "https://github.com/openjdk/jdk21/archive/${revision}.zip"
+    dest layout.buildDirectory.file("jdk-${revision}.zip")
+    overwrite false
+}
+
+def unpackJDK = tasks.register("unpackJDK", Sync) {
+    dependsOn downloadJDK
+    from downloadJDK.map { it.outputs.files.collect { zipTree(it) } }
+    into layout.buildDirectory.dir("jdk")
+    exclude "**/module-info.java"
+}
+
+def baseJDKDir = layout.buildDirectory.dir("jdk/jdk21-${revision}").get()
+
+def compileTools = tasks.register("compileTools", JavaCompile) {
+    dependsOn unpackJDK
+    source fileTree(baseJDKDir.dir("make/langtools/tools")) {
+        exclude("anttasks")
+        exclude("genstubs")
+        exclude("crules")
+    }
+    destinationDirectory.set(layout.buildDirectory.dir("buildTools"))
+    classpath = files()
+}
+
+def baseSrcDir = baseJDKDir.dir("src")
+def generatedSrcDir = layout.buildDirectory.dir("generated/java").get()
+
+def generateCompilerProperties = tasks.register("generateCompilerProperties", JavaExec) {
+    classpath compileTools
+    classpath baseJDKDir.dir("make/langtools/tools")
+    dependsOn unpackJDK
+    def files = [
+            "jdk.compiler/share/classes/com/sun/tools/javac/resources/compiler.properties",
+            "jdk.compiler/share/classes/com/sun/tools/javac/resources/launcher.properties"
+    ]
+    for (file in files) {
+        def fileNameIndex = file.lastIndexOf('/')
+        def dirName = file.substring(0, fileNameIndex)
+        def fileName = file.substring(fileNameIndex + 1)
+        def fileNameWithoutExtension = fileName.substring(0, fileName.length() - 11)
+        def capitalizedName = fileNameWithoutExtension.substring(0, 1).toUpperCase() +
+                fileNameWithoutExtension.substring(1)
+        def outputPath = dirName + "/" + capitalizedName + "Properties.java"
+
+        def inputFile = baseSrcDir.file(file)
+        def outputFile = generatedSrcDir.file(outputPath)
+        args "-compile"
+        args inputFile.getAsFile().getAbsolutePath()
+        args outputFile.getAsFile().getParentFile().getAbsolutePath()
+        inputs.file inputFile
+        outputs.file outputFile
+        doFirst {
+            outputFile.getAsFile().getParentFile().mkdirs()
+        }
+    }
+
+    mainClass = "propertiesparser.PropertiesParser"
+}
+
+def compileCompilerProperties = tasks.register("compileCompilerProperties", JavaExec) {
+    classpath compileTools
+    classpath baseJDKDir.dir("make/langtools/tools")
+    dependsOn unpackJDK
+    def files = [
+            "com/sun/tools/javac/resources/compiler.properties",
+            "com/sun/tools/javac/resources/launcher.properties",
+            "com/sun/tools/javac/resources/javac.properties"
+    ]
+    for (file in files) {
+        def outputPath = file.substring(0, file.length() - ".properties".length()) + ".java"
+
+        def outputFile = generatedSrcDir.file("jdk.compiler/share/classes/" + outputPath)
+        args "-compile"
+        args "./" + file
+        args outputFile.getAsFile().getAbsolutePath()
+        args "java.util.ListResourceBundle"
+        inputs.file baseSrcDir.file("jdk.compiler/share/classes/" + file)
+        outputs.file outputFile
+        workingDir baseSrcDir.dir("jdk.compiler/share/classes")
+        doFirst {
+            outputFile.getAsFile().getParentFile().mkdirs()
+        }
+    }
+
+    mainClass = "compileproperties.CompileProperties"
+}
+
+compileJava.dependsOn(unpackJDK, compileTools, generateCompilerProperties, compileCompilerProperties)
+
+sourceSets.main {
+    java {
+        srcDir baseSrcDir.dir("jdk.compiler/share/classes")
+        srcDir generatedSrcDir.dir("jdk.compiler/share/classes")
+        srcDir baseSrcDir.dir("java.compiler/share/classes")
+        srcDir baseSrcDir.dir("jdk.internal.opt/share/classes")
+        exclude "module-info.java"
+    }
+}
+
+compileJava {
+    options.compilerArgs.addAll(
+            "--limit-modules", "java.base",
+            "--add-exports", "java.base/jdk.internal.javac=ALL-UNNAMED",
+            "--add-exports", "java.base/jdk.internal.misc=ALL-UNNAMED",
+            "--add-exports", "java.base/sun.reflect.annotation=ALL-UNNAMED"
+    )
+    source fileTree(baseSrcDir.dir("java.base/share/classes/")) {
+        include "jdk/internal/jmod/**"
+    }
+}

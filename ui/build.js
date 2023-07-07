@@ -14,24 +14,23 @@
  *  limitations under the License.
  */
 
-var fs = require("fs");
+import fs from "fs";
 
-if (!fs.existsSync("target/static")) {
-    fs.mkdirSync("target/static");
+if (!fs.existsSync("build/static")) {
+    fs.mkdirSync("build/static");
 }
-if (!fs.existsSync("target/static/fonts")) {
-    fs.mkdirSync("target/static/fonts");
+if (!fs.existsSync("build/static/fonts")) {
+    fs.mkdirSync("build/static/fonts");
 }
-if (!fs.existsSync("target/static/css")) {
-    fs.mkdirSync("target/static/css");
+if (!fs.existsSync("build/static/css")) {
+    fs.mkdirSync("build/static/css");
 }
 
-copy("node_modules/bootstrap/dist/css/bootstrap.min.css", "target/static/css/bootstrap.min.css");
+copy("node_modules/bootstrap/dist/css/bootstrap.min.css", "build/static/css/bootstrap.min.css");
 
-var files = fs.readdirSync("node_modules/bootstrap/dist/fonts/");
-for (var i = 0; i < files.length; ++i) {
-    var fileName = files[i];
-    copy("node_modules/bootstrap/dist/fonts/" + fileName, "target/static/fonts/" + fileName);
+let files = fs.readdirSync("node_modules/bootstrap/dist/fonts/");
+for (let fileName of files) {
+    copy("node_modules/bootstrap/dist/fonts/" + fileName, "build/static/fonts/" + fileName);
 }
 
 function copy(from, to) {

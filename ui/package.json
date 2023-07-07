@@ -6,9 +6,9 @@
     "uglifycss": "0.0.27"
   },
   "scripts": {
-    "build-js": "uglifyjs --compress --mangle --output=target/static/codemirror.min.js node_modules/codemirror/lib/codemirror.js",
-    "build-mode": "uglifyjs --compress --mangle --output=target/static/codemirror-clike.min.js node_modules/codemirror/mode/clike/clike.js",
-    "build-css": "uglifycss --output target/static/codemirror.min.css node_modules/codemirror/lib/codemirror.css",
+    "build-js": "uglifyjs --compress --mangle --output=build/static/codemirror.min.js node_modules/codemirror/lib/codemirror.js",
+    "build-mode": "uglifyjs --compress --mangle --output=build/static/codemirror-clike.min.js node_modules/codemirror/mode/clike/clike.js",
+    "build-css": "uglifycss --output build/static/codemirror.min.css node_modules/codemirror/lib/codemirror.css",
     "build-all": "node build.js && npm run build-js && npm run build-mode && npm run build-css"
   }
 }

@@ -1,0 +1,91 @@
+<!--
+    Copyright 2014 Alexey Andreev.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+  <title>Javac test</title>
+  <script type="module" charset="utf-8" src=""></script>
+</head>
+<body>
+<script type="module">
+    import { load } from "./build/generated/teavm/wasm-gc/compiler.wasm-runtime.js";
+
+    async function loadCompiler() {
+        let teavm = await load("build/generated/teavm/wasm-gc/compiler.wasm", {
+            stackDeobfuscator: {
+                enabled: true
+            },
+        });
+        return teavm.exports;
+    }
+    async function loadSDK() {
+        let response = await fetch("build/classlib/compile-classlib-teavm.bin");
+        return new Int8Array(await response.arrayBuffer());
+    }
+    async function loadClasslib() {
+        let response = await fetch("build/classlib/runtime-classlib-teavm.bin");
+        return new Int8Array(await response.arrayBuffer());
+    }
+    async function launch() {
+        Error.stackTraceLimit = 50;
+        let [compilerLib, sdk, classlib] = await Promise.all([loadCompiler(), loadSDK(), loadClasslib()]);
+        let time = new Date().getTime();
+        let compiler = compilerLib.createCompiler();
+        compiler.setSdk(sdk);
+        compiler.setTeaVMClasslib(classlib);
+        compiler.addSourceFile("Main.java", `
+            import java.util.Calendar;
+            import java.util.Date;
+            import java.util.GregorianCalendar;
+            import java.util.TimeZone;
+
+            public class Main {
+                  public static void main(String[] args) {
+                      var tz = TimeZone.getTimeZone("America/Toronto");
+                      var date = new GregorianCalendar(2006, 2, 24).getTime();
+                      System.out.println(tz.getOffset(date.getTime()));
+                      System.out.println("Hello, world!");
+                  }
+            }`
+        );
+        let newTime = new Date().getTime();
+        console.log("Initialization took " + (newTime - time) + " ms");
+        time = newTime;
+
+        compiler.compile();
+        newTime = new Date().getTime();
+        console.log("Java compiler took " + (newTime - time) + " ms");
+        time = newTime;
+
+        compiler.generateWebAssembly({
+            outputName: "app",
+            mainClass: "Main"
+        });
+        newTime = new Date().getTime();
+        console.log("WebAssembly generation took " + (newTime - time) + " ms");
+        time = newTime;
+
+        console.log("Loading generated module...")
+        let generatedWasm = compiler.getWebAssemblyOutputFile("app.wasm");
+        let teavm = await load(generatedWasm);
+        console.log("Running generated module...")
+        teavm.exports.main([]);
+    }
+    document.body.onload = launch;
+</script>
+</body>
+</html>

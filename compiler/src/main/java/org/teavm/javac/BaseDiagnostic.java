@@ -1,5 +1,5 @@
 /*
- *  Copyright 2017 Alexey Andreev.
+ *  Copyright 2025 Alexey Andreev.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -14,21 +14,29 @@
  *  limitations under the License.
  */
 
-package org.teavm.javac.protocol;
+package org.teavm.javac;
 
+import org.teavm.jso.JSExport;
 import org.teavm.jso.JSProperty;
-import org.teavm.jso.typedarrays.Int8Array;
 
-public interface CompilationResultMessage extends WorkerMessage {
+public abstract class BaseDiagnostic {
+    @JSExport
     @JSProperty
-    String getStatus();
+    public abstract String getType();
 
+    @JSExport
     @JSProperty
-    void setStatus(String status);
+    public abstract String getSeverity();
 
+    @JSExport
     @JSProperty
-    Int8Array getScript();
+    public abstract String getMessage();
 
+    @JSExport
     @JSProperty
-    void setScript(Int8Array script);
+    public abstract int getLineNumber();
+
+    @JSExport
+    @JSProperty
+    public abstract String getFileName();
 }

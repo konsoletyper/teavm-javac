@@ -1,0 +1,52 @@
+plugins {
+    id "java"
+    id "war"
+    alias libs.plugins.teavm
+    alias libs.plugins.nodejs
+    alias libs.plugins.gretty
+}
+
+configurations {
+    webapp {
+        transitive = true
+    }
+}
+
+dependencies {
+    teavmImplementation teavm.libs.jsoApis
+    teavmImplementation project(":protocol")
+    webapp project(path: ":compiler", configuration: "dist")
+}
+
+teavm.js {
+    mainClass = "org.teavm.javac.ui.Client"
+    addedToWebApp = true
+}
+
+node {
+    download = providers.gradleProperty("teavm.localNodeJS")
+            .map { it == "true" }
+            .map { !it }
+            .orElse(true)
+}
+
+def generateStaticTask = tasks.register("generateStatic", NpmTask) {
+    dependsOn tasks.npmInstall
+    inputs.files layout.projectDirectory.file("package.json")
+    inputs.files layout.projectDirectory.file("build.js")
+    outputs.dir layout.projectDirectory.dir("build/static")
+    npmCommand.addAll "run", "build-all"
+}
+
+war {
+    dependsOn generateStaticTask, configurations.webapp
+    from layout.projectDirectory.dir("build/static")
+    from provider {
+        configurations.webapp.collect { zipTree(it) }
+    }
+    exclude "**/*.jar"
+}
+
+gretty {
+    contextPath = ""
+}

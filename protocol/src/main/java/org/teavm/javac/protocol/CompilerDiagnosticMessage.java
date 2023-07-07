@@ -20,16 +20,16 @@ import org.teavm.jso.JSProperty;
 
 public interface CompilerDiagnosticMessage extends WorkerMessage {
     @JSProperty
-    String getKind();
+    String getSeverity();
 
     @JSProperty
-    void setKind(String kind);
+    void setSeverity(String kind);
 
     @JSProperty
-    CompilableObject getObject();
+    String getFileName();
 
     @JSProperty
-    void setObject(CompilableObject object);
+    void setFileName(String name);
 
     @JSProperty
     int getStartPosition();
@@ -60,12 +60,6 @@ public interface CompilerDiagnosticMessage extends WorkerMessage {
 
     @JSProperty
     void setColumnNumber(int columnNumber);
-
-    @JSProperty
-    String getCode();
-
-    @JSProperty
-    void setCode(String code);
 
     @JSProperty
     String getMessage();
