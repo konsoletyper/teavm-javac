@@ -1,0 +1,152 @@
+
+plugins {
+    id "java"
+    alias libs.plugins.teavm
+}
+
+configurations {
+    classlibInput {
+        transitive = false
+    }
+    classlibAuxInput {
+        transitive = false
+    }
+    dist {
+        transitive = false
+    }
+}
+
+dependencies {
+    implementation project(":javac")
+    implementation project(":protocol")
+    compileOnly libs.teavm.core
+    implementation libs.teavm.tooling
+    implementation libs.asm.core
+    classlibInput libs.teavm.classlib
+    classlibInput libs.teavm.jso
+    classlibInput libs.teavm.jso.apis
+    classlibAuxInput libs.teavm.core
+    classlibAuxInput libs.teavm.jso.impl
+    classlibAuxInput libs.teavm.interop
+    classlibAuxInput libs.teavm.platform
+    classlibAuxInput libs.jzlib
+}
+
+compileJava {
+    options.compilerArgs.addAll("--limit-modules", "java.base")
+}
+
+teavm {
+    all {
+        mainClass = "org.teavm.javac.CompilerLib"
+    }
+    wasmGC {
+        outOfProcess = true
+        processMemory = 4096
+        modularRuntime = true
+    }
+}
+
+def classlibOutDir = project.layout.buildDirectory.dir("classlib")
+
+tasks.register("generateClassLib", JavaExec) {
+    def output = classlibOutDir.map { it.file("compile-classlib-teavm.bin") }
+    dependsOn configurations.classlibInput
+    inputs.files configurations.classlibInput
+    outputs.file output
+    args {
+        [
+            output.get().asFile.absolutePath,
+            *configurations.classlibInput.files.collect { it.absolutePath }
+        ].iterator()
+    }
+    classpath sourceSets.main.output, sourceSets.main.runtimeClasspath
+    mainClass = "org.teavm.javac.StdlibConverter"
+}
+
+def classLibTmpDir = project.layout.buildDirectory.dir("tmp/teavm-classlib")
+
+def unpackTeaVMClasslib = tasks.register("unpackTeaVMClassLib", Copy) {
+    from provider {
+        configurations.classlibInput.collect { zipTree(it) }
+    }
+    exclude "META-INF/MANIFEST.MF"
+    into classLibTmpDir
+}
+
+def unpackCldr = tasks.register("unpackCldr", Copy) {
+    dependsOn unpackTeaVMClasslib
+    from classLibTmpDir.map { it.file("org/teavm/classlib/impl/unicode/cldr-json.zip") }.map { zipTree(it) }
+    into project.layout.buildDirectory.dir("tmp/cldr")
+}
+
+def repackCldr = tasks.register("repackCldr", Zip) {
+    from unpackCldr
+    destinationDirectory.set project.layout.buildDirectory.dir("tmp")
+    archiveFileName = "cldr-json.zip"
+    include "en/**"
+    include "supplemental/**"
+}
+
+def prepareTeaVMClassLib = tasks.register("prepareTeaVMClassLib", Copy) {
+    dependsOn unpackTeaVMClasslib, repackCldr
+    from(unpackTeaVMClasslib) {
+        exclude "org/teavm/classlib/impl/unicode/cldr-json.zip"
+    }
+    from(provider {
+        configurations.classlibAuxInput.collect {
+            zipTree(it)
+        }
+    }) {
+        include "org/teavm/classlib/**"
+        include "org/teavm/platform/**"
+        include "org/teavm/jso/**"
+        include "org/teavm/runtime/**"
+        include "org/teavm/interop/**"
+        include "org/teavm/backend/wasm/runtime/**"
+        include "org/teavm/backend/wasm/WasmRuntime*.class"
+        include "org/teavm/backend/wasm/WasmHeap*.class"
+        include "com/jcraft/jzlib/**"
+    }
+    from(repackCldr) {
+        eachFile {
+            path = "org/teavm/classlib/impl/unicode/" + path
+            if (path == "META-INF/MANIFEST.MF") {
+                exclude()
+            }
+        }
+    }
+    into project.layout.buildDirectory.dir("tmp/classlib-runtime")
+}
+
+def buildTeaVMClassLib = tasks.register("buildTeaVMClassLib", JavaExec) {
+    dependsOn prepareTeaVMClassLib, compileJava
+    classpath sourceSets.main.runtimeClasspath
+    def inputDir = project.layout.buildDirectory.dir("tmp/classlib-runtime")
+    def outputFile = project.layout.buildDirectory.file("classlib/runtime-classlib-teavm.bin")
+    inputs.dir inputDir
+    outputs.file outputFile
+    args  {
+        [
+                inputDir.get().asFile.absolutePath,
+                outputFile.get().asFile.absolutePath
+        ].iterator()
+    }
+    mainClass = "org.teavm.javac.ArchiveBuilder"
+}
+
+build {
+    dependsOn buildWasmGC, buildTeaVMClassLib, generateClassLib
+}
+
+def createDist = tasks.register("createDist", Zip) {
+    group "build"
+    dependsOn buildWasmGC
+    from buildTeaVMClassLib
+    from generateClassLib
+    from layout.buildDirectory.dir("generated/teavm/wasm-gc")
+    exclude "src/**"
+    archiveBaseName = "dist"
+}
+
+artifacts.add("dist", createDist)

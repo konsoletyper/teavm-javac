@@ -1,5 +1,5 @@
 /*
- *  Copyright 2017 Alexey Andreev.
+ *  Copyright 2025 Alexey Andreev.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,9 +19,9 @@ package org.teavm.javac;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.LinkedHashSet;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -41,13 +41,13 @@ public class StdlibConverter extends ClassVisitor {
             "java/util/stream/impl",
             "java/util/stream/intimpl",
             "java/util/stream/longimpl",
-            "java/util/stream/doubleimpl"
+            "java/util/stream/doubleimpl",
     };
     boolean visible;
     String className;
 
     public StdlibConverter(ClassVisitor cv) {
-        super(Opcodes.ASM5, cv);
+        super(Opcodes.ASM9, cv);
     }
 
     @Override
@@ -190,15 +190,19 @@ public class StdlibConverter extends ClassVisitor {
     }
 
     private String rename(String className) {
-        if (!className.startsWith(PREFIX)) {
-            return className;
-        }
-        int slashIndex = className.lastIndexOf('/');
-        if (className.charAt(slashIndex + 1) != 'T') {
-            return className;
-        }
+        if (className.startsWith(PREFIX)) {
+            int slashIndex = className.lastIndexOf('/');
+            if (className.charAt(slashIndex + 1) != 'T') {
+                return className;
+            }
 
-        return "java/" + className.substring(PREFIX.length(), slashIndex) + "/" + className.substring(slashIndex + 2);
+            return "java/" + className.substring(PREFIX.length(), slashIndex) + "/" + className.substring(
+                    slashIndex + 2);
+        } else if (className.startsWith("org/threeten/bp/")) {
+            return "java/time/" + className.substring("org/threeten/bp/".length());
+        } else {
+            return className;
+        }
     }
 
     private String renameDesc(String desc) {
@@ -446,26 +450,46 @@ public class StdlibConverter extends ClassVisitor {
     }
 
     public static void main(String[] args) throws IOException {
-        try (ZipInputStream input = new ZipInputStream(new FileInputStream("teavm-classlib.zip"));
-                ZipOutputStream output = new ZipOutputStream(new FileOutputStream("classlib.zip"))) {
-            while (true) {
-                ZipEntry entry = input.getNextEntry();
-                if (entry == null) {
-                    break;
-                }
-                if (entry.isDirectory() || !entry.getName().endsWith(".class")) {
-                    continue;
-                }
+        try (var output = new ArchiveBuilder(new FileOutputStream(args[0]))) {
+            var packageNames = new LinkedHashSet<String>();
+            for (var i = 1; i < args.length; ++i) {
+                try (var input = new ZipInputStream(new FileInputStream(args[i]))) {
+                    while (true) {
+                        ZipEntry entry = input.getNextEntry();
+                        if (entry == null) {
+                            break;
+                        }
+                        if (entry.isDirectory() || !entry.getName().endsWith(".class")) {
+                            continue;
+                        }
 
-                ClassReader reader = new ClassReader(input);
-                ClassWriter writer = new ClassWriter(0);
-                StdlibConverter converter = new StdlibConverter(writer);
-                reader.accept(converter, ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES | ClassReader.SKIP_DEBUG);
-                if (converter.visible) {
-                    ZipEntry outEntry = new ZipEntry(converter.className + ".class");
-                    output.putNextEntry(outEntry);
-                    output.write(writer.toByteArray());
+                        ClassReader reader = new ClassReader(input);
+                        ClassWriter writer = new ClassWriter(0);
+                        StdlibConverter converter = new StdlibConverter(writer);
+                        reader.accept(converter, ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES
+                                | ClassReader.SKIP_DEBUG);
+                        if (converter.visible) {
+                            var outputName = converter.className + ".class";
+                            output.append(outputName, writer.toByteArray());
+                        }
+                        if (converter.className != null) {
+                            var index = converter.className.lastIndexOf('/');
+                            if (index > 0) {
+                                packageNames.add(converter.className.substring(0, index));
+                            }
+                        }
+                    }
                 }
+            }
+            if (!packageNames.isEmpty()) {
+                var writer = new ClassWriter(0);
+                writer.visit(Opcodes.V21, Opcodes.ACC_MODULE, "java.base", null, null, null);
+                var mv = writer.visitModule("java.base", Opcodes.ACC_OPEN, null);
+                for (var packageName : packageNames) {
+                    mv.visitExport(packageName, 0, (String[]) null);
+                }
+                mv.visitEnd();
+                output.append("module-info.class", writer.toByteArray());
             }
         }
     }

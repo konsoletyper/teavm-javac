@@ -14,48 +14,49 @@
  *  limitations under the License.
  */
 
-window.addEventListener("message", function(event) {
-    var request = JSON.parse(event.data);
-    appendFile(request.code + "\nmain();\n", function() {
-        event.source.postMessage(JSON.stringify({ status: "loaded" }), "*");
-    },
-    function (error) {
-        event.source.postMessage(JSON.stringify({ status: "failed", errorMessage: error }), "*");
-    });
+import { load } from './compiler.wasm-runtime.js'
+
+window.addEventListener("message", async function(event) {
+    let request = event.data;
+    let module;
+    try {
+         module = await load(request.code, {
+            stackDeobfuscator: {
+                enabled: true
+            },
+            installImports(o) {
+                o.teavmConsole.putcharStdout = putStdout;
+                o.teavmConsole.putcharStderr = putStderr;
+            }
+        });
+    } catch (e) {
+        event.source.postMessage({ status: "failed", errorMessage: e.message }, "*");
+        return;
+    }
+    event.source.postMessage({ status: "loaded" }, "*");
+    module.exports.main([]);
 });
 
-function appendFile(file, callback, errorCallback) {
-    var script = document.createElement("script");
-    script.onload = function() {
-        callback();
-    };
-    script.onerror = function() {
-        errorCallback("failed to load script" + fileName);
-    };
-    script.text = file;
-    document.body.appendChild(script);
+export function start() {
+    window.parent.postMessage({ command: "ready" }, "*");
 }
 
-function start() {
-    window.parent.postMessage(JSON.stringify({ command: "ready" }), "*");
-}
-
-var $stdoutBuffer = "";
-function $rt_putStdoutCustom(ch) {
+let stdoutBuffer = "";
+function putStdout(ch) {
     if (ch === 0xA) {
-        window.parent.postMessage(JSON.stringify({ command: "stdout", line: $stdoutBuffer }), "*");
-        $stdoutBuffer = "";
+        window.parent.postMessage({ command: "stdout", line: stdoutBuffer }, "*");
+        stdoutBuffer = "";
     } else {
-        $stdoutBuffer += String.fromCharCode(ch);
+        stdoutBuffer += String.fromCharCode(ch);
     }
 }
 
-var $stderrBuffer = "";
-function $rt_putStderrCustom(ch) {
+let stderrBuffer = "";
+function putStderr(ch) {
     if (ch === 0xA) {
-        window.parent.postMessage(JSON.stringify({ command: "stderr", line: $stderrBuffer }), "*");
-        $stderrBuffer = "";
+        window.parent.postMessage({ command: "stderr", line: stderrBuffer }, "*");
+        stderrBuffer = "";
     } else {
-        $stderrBuffer += String.fromCharCode(ch);
+        stderrBuffer += String.fromCharCode(ch);
     }
 }

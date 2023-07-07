@@ -11,7 +11,6 @@
         <package name="" withSubpackages="true" static="false" />
       </value>
     </option>
-    <option name="HTML_DO_NOT_INDENT_CHILDREN_OF" value="" />
     <JavaCodeStyleSettings>
       <option name="ANNOTATION_PARAMETER_WRAP" value="1" />
       <option name="CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND" value="99" />
@@ -26,9 +25,9 @@
         </value>
       </option>
     </JavaCodeStyleSettings>
-    <XML>
-      <option name="XML_LEGACY_SETTINGS_IMPORTED" value="true" />
-    </XML>
+    <ScalaCodeStyleSettings>
+      <option name="MULTILINE_STRING_CLOSING_QUOTES_ON_NEW_LINE" value="true" />
+    </ScalaCodeStyleSettings>
     <codeStyleSettings language="HTML">
       <indentOptions>
         <option name="INDENT_SIZE" value="2" />

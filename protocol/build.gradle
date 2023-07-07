@@ -1,0 +1,8 @@
+plugins {
+    id "java"
+    alias libs.plugins.teavm.library
+}
+
+dependencies {
+    implementation libs.teavm.jso.apis
+}

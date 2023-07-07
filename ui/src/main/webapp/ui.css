@@ -15,13 +15,15 @@
  */
 
 .red-wave {
-    background: url("red-wave.png") repeat-x;
-    background-position-y: bottom;
+    text-decoration-line: underline;
+    text-decoration-style: wavy;
+    text-decoration-color: red;
 }
 
 .yellow-wave {
-    background: url("yellow-wave.png") repeat-x;
-    background-position-y: bottom;
+    text-decoration-line: underline;
+    text-decoration-style: wavy;
+    text-decoration-color: #b8a600;
 }
 
 .gutter-error {

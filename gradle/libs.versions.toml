@@ -1,0 +1,25 @@
+[versions]
+
+teavm = "0.13.0-dev-1"
+asm = "9.8"
+
+[libraries]
+
+teavm-core = { module = "org.teavm:teavm-core", version.ref = "teavm" }
+teavm-classlib = { module = "org.teavm:teavm-classlib", version.ref = "teavm" }
+teavm-tooling = { module = "org.teavm:teavm-tooling", version.ref = "teavm" }
+teavm-jso-impl = { module = "org.teavm:teavm-jso-impl", version.ref = "teavm" }
+teavm-jso = { module = "org.teavm:teavm-jso", version.ref = "teavm" }
+teavm-jso-apis = { module = "org.teavm:teavm-jso-apis", version.ref = "teavm" }
+teavm-interop = { module = "org.teavm:teavm-interop", version.ref = "teavm" }
+teavm-platform = { module = "org.teavm:teavm-platform", version.ref = "teavm" }
+asm-core = { module = "org.ow2.asm:asm", version.ref = "asm" }
+jzlib = "com.jcraft:jzlib:1.1.3"
+
+[plugins]
+
+teavm = { id = "org.teavm", version.ref = "teavm" }
+teavm-library = { id = "org.teavm.library", version.ref = "teavm" }
+download = { id = "de.undercouch.download", version = "5.6.0" }
+nodejs = { id = "com.github.node-gradle.node", version = "7.1.0" }
+gretty = { id = "org.gretty", version = "4.1.6" }

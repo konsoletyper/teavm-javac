@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  ~  Copyright 2017 Alexey Andreev.
+  ~  Copyright 2025 Alexey Andreev.
   ~
   ~  Licensed under the Apache License, Version 2.0 (the "License");
   ~  you may not use this file except in compliance with the License.
@@ -19,11 +19,15 @@
   <head>
     <meta charset="UTF-8">
     <meta property="workerLocation" content="worker.js">
-    <meta property="stdlibLocation" content="classlib.txt">
+    <meta property="stdlibLocation" content="compile-classlib-teavm.bin">
+    <meta property="runtimeStdlibLocation" content="runtime-classlib-teavm.bin">
     <title>TeaVM &mdash; Online Java compiler (beta)</title>
+    <script type="text/javascript">
+      Error.stackTraceLimit = 50;
+    </script>
     <script type="text/javascript" src="codemirror.min.js"></script>
     <script type="text/javascript" src="codemirror-clike.min.js"></script>
-    <script type="text/javascript" src="teavm/classes.js"></script>
+    <script type="text/javascript" src="js/ui.js"></script>
     <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="codemirror.min.css">
     <link rel="stylesheet" type="text/css" href="ui.css">

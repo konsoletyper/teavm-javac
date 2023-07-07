@@ -1,9 +1,10 @@
+/.gradle
 /.idea/*
 !/.idea/copyright
 !/.idea/inspectionProfiles
 !/.idea/codeStyles
 !/.idea/checkstyle-idea.xml
 !/.idea/runConfigurations
-target
+build
 node_modules
-*.iml
+**/teavm-local.properties

@@ -11,6 +11,7 @@
       <option name="REPORT_METHODS" value="false" />
       <option name="REPORT_FIELDS" value="true" />
     </inspection_tool>
+    <inspection_tool class="CatchMayIgnoreException" enabled="true" level="ERROR" enabled_by_default="true" />
     <inspection_tool class="CheckStyle" enabled="true" level="ERROR" enabled_by_default="true">
       <scope name="classlib" level="WEAK WARNING" enabled="true" />
     </inspection_tool>
@@ -26,10 +27,21 @@
       <option name="SUGGEST_NULLABLE_ANNOTATIONS" value="false" />
       <option name="DONT_REPORT_TRUE_ASSERT_STATEMENTS" value="false" />
     </inspection_tool>
+    <inspection_tool class="ConstantValue" enabled="false" level="WARNING" enabled_by_default="false">
+      <scope name="classlib" level="WEAK WARNING" enabled="false" />
+    </inspection_tool>
     <inspection_tool class="ControlFlowStatementWithoutBraces" enabled="true" level="ERROR" enabled_by_default="true" />
     <inspection_tool class="Convert2Lambda" enabled="true" level="WEAK WARNING" enabled_by_default="true" />
     <inspection_tool class="Convert2MethodRef" enabled="true" level="WEAK WARNING" enabled_by_default="true" />
     <inspection_tool class="CssUnusedSymbol" enabled="true" level="WEAK WARNING" enabled_by_default="true" />
+    <inspection_tool class="DataFlowIssue" enabled="false" level="WARNING" enabled_by_default="false">
+      <scope name="classlib" level="WEAK WARNING" enabled="false">
+        <option name="SUGGEST_NULLABLE_ANNOTATIONS" value="false" />
+        <option name="DONT_REPORT_TRUE_ASSERT_STATEMENTS" value="false" />
+      </scope>
+      <option name="SUGGEST_NULLABLE_ANNOTATIONS" value="false" />
+      <option name="DONT_REPORT_TRUE_ASSERT_STATEMENTS" value="false" />
+    </inspection_tool>
     <inspection_tool class="EmptyCatchBlock" enabled="true" level="ERROR" enabled_by_default="true">
       <option name="m_includeComments" value="true" />
       <option name="m_ignoreTestCases" value="true" />
@@ -44,6 +56,7 @@
       <option name="ignoreSwitchStatementsWithDefault" value="true" />
     </inspection_tool>
     <inspection_tool class="FieldCanBeLocal" enabled="true" level="WEAK WARNING" enabled_by_default="true" />
+    <inspection_tool class="FieldMayBeFinal" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="ForCanBeForeach" enabled="true" level="WEAK WARNING" enabled_by_default="true">
       <option name="REPORT_INDEXED_LOOP" value="true" />
       <option name="ignoreUntypedCollections" value="false" />
@@ -90,6 +103,7 @@
     <inspection_tool class="MultipleDeclaration" enabled="true" level="ERROR" enabled_by_default="true">
       <option name="ignoreForLoopDeclarations" value="true" />
     </inspection_tool>
+    <inspection_tool class="MultipleVariablesInDeclaration" enabled="true" level="ERROR" enabled_by_default="true" />
     <inspection_tool class="NonOsgiMavenDependency" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="NullableProblems" enabled="true" level="WEAK WARNING" enabled_by_default="true">
       <option name="REPORT_NULLABLE_METHOD_OVERRIDES_NOTNULL" value="true" />
@@ -101,8 +115,10 @@
       <option name="REPORT_ANNOTATION_NOT_PROPAGATED_TO_OVERRIDERS" value="true" />
       <option name="REPORT_NULLS_PASSED_TO_NON_ANNOTATED_METHOD" value="true" />
     </inspection_tool>
+    <inspection_tool class="OptionalOfNullableMisuse" enabled="true" level="WARNING" enabled_by_default="true">
+      <scope name="classlib" level="WEAK WARNING" enabled="false" />
+    </inspection_tool>
     <inspection_tool class="PackageAccessibility" enabled="false" level="ERROR" enabled_by_default="false" />
-    <inspection_tool class="RawUseOfParameterizedType" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="RedundantFieldInitialization" enabled="true" level="ERROR" enabled_by_default="true" />
     <inspection_tool class="RedundantThrows" enabled="true" level="WEAK WARNING" enabled_by_default="true" />
     <inspection_tool class="SameParameterValue" enabled="true" level="WARNING" enabled_by_default="true">
@@ -138,8 +154,8 @@
     <inspection_tool class="XmlUnboundNsPrefix" enabled="true" level="WEAK WARNING" enabled_by_default="true">
       <scope name="ecipse" level="WARNING" enabled="false" />
     </inspection_tool>
-    <inspection_tool class="unused" enabled="true" level="WARNING" enabled_by_default="true">
-      <scope name="classlib-emu" level="WARNING" enabled="false">
+    <inspection_tool class="unused" enabled="true" level="WARNING" enabled_by_default="true" checkParameterExcludingHierarchy="false">
+      <scope name="classlib-emu" level="WARNING" enabled="false" editorAttributes="NOT_USED_ELEMENT_ATTRIBUTES" checkParameterExcludingHierarchy="false">
         <option name="LOCAL_VARIABLE" value="true" />
         <option name="FIELD" value="true" />
         <option name="METHOD" value="true" />
@@ -150,8 +166,9 @@
         <option name="ADD_APPLET_TO_ENTRIES" value="true" />
         <option name="ADD_SERVLET_TO_ENTRIES" value="true" />
         <option name="ADD_NONJAVA_TO_ENTRIES" value="true" />
+        <option name="selected" value="true" />
       </scope>
-      <scope name="jso-apis" level="WARNING" enabled="false">
+      <scope name="jso-apis" level="WARNING" enabled="false" editorAttributes="NOT_USED_ELEMENT_ATTRIBUTES" checkParameterExcludingHierarchy="false">
         <option name="LOCAL_VARIABLE" value="true" />
         <option name="FIELD" value="true" />
         <option name="METHOD" value="true" />
@@ -162,6 +179,7 @@
         <option name="ADD_APPLET_TO_ENTRIES" value="true" />
         <option name="ADD_SERVLET_TO_ENTRIES" value="true" />
         <option name="ADD_NONJAVA_TO_ENTRIES" value="true" />
+        <option name="selected" value="true" />
       </scope>
       <option name="LOCAL_VARIABLE" value="true" />
       <option name="FIELD" value="true" />
@@ -173,6 +191,7 @@
       <option name="ADD_APPLET_TO_ENTRIES" value="true" />
       <option name="ADD_SERVLET_TO_ENTRIES" value="true" />
       <option name="ADD_NONJAVA_TO_ENTRIES" value="true" />
+      <option name="selected" value="true" />
     </inspection_tool>
   </profile>
 </component>

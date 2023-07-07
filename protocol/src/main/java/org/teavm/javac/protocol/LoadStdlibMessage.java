@@ -24,4 +24,10 @@ public interface LoadStdlibMessage extends WorkerMessage {
 
     @JSProperty
     void setUrl(String url);
+
+    @JSProperty
+    String getRuntimeUrl();
+
+    @JSProperty
+    void setRuntimeUrl(String url);
 }

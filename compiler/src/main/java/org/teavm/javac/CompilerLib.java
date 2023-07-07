@@ -1,5 +1,5 @@
 /*
- *  Copyright 2017 Alexey Andreev.
+ *  Copyright 2025 Alexey Andreev.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -14,21 +14,18 @@
  *  limitations under the License.
  */
 
-package org.teavm.javac.protocol;
+package org.teavm.javac;
 
-import org.teavm.jso.JSProperty;
-import org.teavm.jso.typedarrays.Int8Array;
+import org.teavm.jso.JSExport;
 
-public interface CompilationResultMessage extends WorkerMessage {
-    @JSProperty
-    String getStatus();
+public class CompilerLib {
+    @JSExport
+    public static Compiler createCompiler() {
+        return new Compiler();
+    }
 
-    @JSProperty
-    void setStatus(String status);
-
-    @JSProperty
-    Int8Array getScript();
-
-    @JSProperty
-    void setScript(Int8Array script);
+    @JSExport
+    public static void installWorker() {
+        new Worker(new Compiler());
+    }
 }

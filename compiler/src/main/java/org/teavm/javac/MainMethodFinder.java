@@ -1,5 +1,5 @@
 /*
- *  Copyright 2017 Alexey Andreev.
+ *  Copyright 2025 Alexey Andreev.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ public class MainMethodFinder extends ClassVisitor {
     public boolean hasMainMethod;
 
     public MainMethodFinder() {
-        super(Opcodes.ASM5);
+        super(Opcodes.ASM9);
     }
 
     @Override
