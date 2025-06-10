@@ -269,7 +269,7 @@ public final class Worker {
         });
     }
 
-    private void createSourceFile(String content) throws IOException {
+    private void createSourceFile(String content) {
         compiler.addSourceFile(SOURCE_FILE_NAME, content);
     }
 
@@ -277,7 +277,7 @@ public final class Worker {
         System.out.println(message);
     }
 
-    private Int8Array readResultingFile() throws IOException {
+    private Int8Array readResultingFile() {
         return compiler.getWebAssemblyOutputFile("app.wasm");
     }
 }

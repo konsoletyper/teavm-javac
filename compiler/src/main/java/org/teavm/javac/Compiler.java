@@ -45,6 +45,8 @@ import org.teavm.jso.typedarrays.Int8Array;
 import org.teavm.model.ClassHolderSource;
 import org.teavm.model.ReferenceCache;
 import org.teavm.parsing.ClasspathClassHolderSource;
+import org.teavm.parsing.CompositeClassHolderSource;
+import org.teavm.parsing.resource.CompositeResourceProvider;
 import org.teavm.parsing.resource.ResourceProvider;
 import org.teavm.platform.plugin.PlatformPlugin;
 import org.teavm.vm.TeaVMBuilder;
@@ -245,9 +247,13 @@ public final class Compiler {
             resourceProvider = new MemoryResourceProvider(List.of(teavmClasslibFiles, outputFiles));
             classSource = new ClasspathClassHolderSource(resourceProvider, refCache);
         }
+        var currentResourceProvider = new CompositeResourceProvider(new MemoryResourceProvider(List.of(outputFiles)),
+                resourceProvider);
+        var currentClassSource = new CompositeClassHolderSource(List.of(
+                new ClasspathClassHolderSource(currentResourceProvider, refCache), classSource));
         var teavm = new TeaVMBuilder(target)
-                .setClassSource(classSource)
-                .setResourceProvider(resourceProvider)
+                .setClassSource(currentClassSource)
+                .setResourceProvider(currentResourceProvider)
                 .setReferenceCache(refCache)
                 .setObfuscated(true)
                 .setStrict(true)
