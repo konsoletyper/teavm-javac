@@ -121,6 +121,10 @@
     color: rgb(192,0,0);
 }
 
+.stdout .error {
+    color: rgb(192,0,0);
+}
+
 .panel-label {
     position: absolute;
     right: 5px;

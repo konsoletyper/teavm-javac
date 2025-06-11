@@ -196,29 +196,36 @@ public final class Client {
         stdoutElement = HTMLDocument.current().getElementById("stdout");
         Window.current().onMessage((MessageEvent event) -> {
             var request = (FrameCommand) event.getData();
-            if (!JSObjects.isUndefined(request.getCommand()) && request.getCommand() != null
-                    && request.getCommand().equals("stdout")) {
-                var stdoutCommand = (FrameStdoutCommand) request;
-                addToConsole(stdoutCommand.getLine(), false);
+            if (!JSObjects.isUndefined(request.getCommand()) && request.getCommand() != null) {
+                if (request.getCommand().equals("stdout")) {
+                    var stdoutCommand = (FrameStdoutCommand) request;
+                    addToConsole(stdoutCommand.getLine(), false, false);
+                } else if (request.getCommand().equals("stderr")) {
+                    var stdoutCommand = (FrameStdoutCommand) request;
+                    addToConsole(stdoutCommand.getLine(), false, true);
+                }
             }
         });
     }
 
-    private static void addTextToConsole(String text, boolean compileTime) {
+    private static void addTextToConsole(String text, boolean compileTime, boolean error) {
         int last = 0;
         for (int i = 0; i < text.length(); ++i) {
             if (text.charAt(i) == '\n') {
-                addToConsole(text.substring(last, i), compileTime);
+                addToConsole(text.substring(last, i), compileTime, error);
                 last = i + 1;
             }
         }
-        addToConsole(text.substring(last), compileTime);
+        addToConsole(text.substring(last), compileTime, error);
     }
 
-    private static void addToConsole(String line, boolean compileTime) {
+    private static void addToConsole(String line, boolean compileTime, boolean error) {
         var lineElem = HTMLDocument.current().createElement("div").withText(line);
         if (compileTime) {
             lineElem.setClassName("compile-time");
+        }
+        if (error) {
+            lineElem.setClassName("error");
         }
         stdoutElement.appendChild(lineElem);
         stdoutElement.setScrollTop(Math.max(0, stdoutElement.getScrollHeight() - stdoutElement.getClientHeight()));
@@ -323,7 +330,7 @@ public final class Client {
             sb.append(' ');
         }
         sb.append(request.getMessage());
-        addTextToConsole(sb.toString(), true);
+        addTextToConsole(sb.toString(), true, false);
 
         if (request.getStartPosition() >= 0) {
             displayMarkInEditor(request);
@@ -341,7 +348,7 @@ public final class Client {
             sb.append(' ');
         }
         sb.append(request.getText());
-        addTextToConsole(sb.toString(), true);
+        addTextToConsole(sb.toString(), true, false);
 
         if (request.getLineNumber() >= 0) {
             int severity;

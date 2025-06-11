@@ -4,12 +4,13 @@
     "bootstrap": "5.0.0",
     "bootstrap-icons": "1.13.1",
     "uglify-js": "3.19.3",
-    "css-minify": "2.1.0"
+    "@node-minify/cli": "9.0.2",
+    "@node-minify/clean-css": "9.0.1"
   },
   "scripts": {
     "build-js": "uglifyjs --compress --mangle --output build/static/codemirror.min.js node_modules/codemirror/lib/codemirror.js",
     "build-mode": "uglifyjs --compress --mangle --output build/static/codemirror-clike.min.js node_modules/codemirror/mode/clike/clike.js",
-    "build-css": "css-minify --output build/static/ node_modules/codemirror/lib/codemirror.css",
+    "build-css": "node-minify --compressor clean-css --input node_modules/codemirror/lib/codemirror.css --output build/static/codemirror.min.css ",
     "build-all": "node build.js && npm run build-js && npm run build-mode && npm run build-css"
   }
 }
