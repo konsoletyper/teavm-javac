@@ -14,6 +14,39 @@
  *  limitations under the License.
  */
 
+.body {
+    font-size: 14pt;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+button {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+    font-weight: bold;
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 6px;
+    background-color: #4582EC;
+    color: #fff;
+    border: 1px solid #4582EC;
+    text-decoration: none;
+}
+button > span {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.25em;
+}
+
+button:hover {
+    background-color: #1863e6;
+    border-color: #175fdd;
+}
+button:active {
+    background-color: #1863e6;
+    border-color: #175fdd;
+}
+
 .red-wave {
     text-decoration-line: underline;
     text-decoration-style: wavy;
@@ -196,4 +229,50 @@
     color: blue;
     cursor: pointer;
     border-bottom-color: rgb(80, 80, 255);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    justify-content: center;
+    align-items: center;
+    background-color: #0000001F;
+}
+
+.modal.modal-open {
+    display: flex;
+}
+
+.modal-dialog {
+    min-width: 15em;
+    max-width: 30em;
+    max-height: 45em;
+    overflow: auto;
+    border-radius: 0.25em;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #dddddd;
+    background-color: white;
+    padding: 0.5em;
+}
+
+.run-action::before {
+    display: inline-block;
+    content: " ";
+    width: 1.5em;
+    height: 1.5em;
+    background-image: url(play.svg);
+    background-size: contain;
+}
+.examples-action::before {
+    display: inline-block;
+    content: " ";
+    width: 1.5em;
+    height: 1.5em;
+    background-image: url(menu_book.svg);
+    background-size: contain;
 }

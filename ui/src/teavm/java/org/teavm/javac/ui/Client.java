@@ -68,7 +68,6 @@ public final class Client {
     private static HTMLElement[] gutterElements;
     private static int[] gutterSeverity;
     private static HTMLElement examplesDialog = HTMLDocument.current().getElementById("examples");
-    private static HTMLElement examplesBackdrop;
     private static String examplesBaseUrl = "examples/";
     private static final Map<String, ExampleCategory> categories = new HashMap<>();
     private static String workerLocation;
@@ -178,18 +177,11 @@ public final class Client {
     }
 
     private static void showExamples() {
-        var document = HTMLDocument.current();
-        examplesDialog.getStyle().setProperty("display", "block");
-        examplesDialog.setClassName("modal fade in");
-        examplesBackdrop = document.createElement("div").withAttr("class", "modal-backdrop fade in");
-        document.getBody().appendChild(examplesBackdrop);
+        examplesDialog.getClassList().add("modal-open");
     }
 
     private static void hideExamples() {
-        examplesDialog.getStyle().setProperty("display", "none");
-        examplesDialog.setClassName("modal fade");
-        examplesBackdrop.delete();
-        examplesBackdrop = null;
+        examplesDialog.getClassList().remove("modal-open");
     }
 
     private static void initStdout() {

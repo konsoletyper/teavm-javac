@@ -27,8 +27,6 @@
     </script>
     <script type="text/javascript" src="codemirror.min.js"></script>
     <script type="text/javascript" src="codemirror-clike.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="css/bootstrap-icons.min.css">
     <link rel="stylesheet" type="text/css" href="codemirror.min.css">
     <link rel="stylesheet" type="text/css" href="ui.css">
     <link rel="icon" type="image/png" href="favicon.png">
@@ -51,13 +49,12 @@
       }
     </script>
     <div class="toolbar">
-      <button id="compile-button" class="btn btn-primary" disabled>
-        <span class="bi bi-play" aria-hidden="true"></span>
-        Run
+      <button id="compile-button" disabled>
+        <span class="run-action">Run</span>
       </button>
-      <button id="choose-example" class="btn btn-secondary" disabled>
-        <span class="bi bi-journal-code" aria-hidden="true"></span>
-        Examples
+      <button id="choose-example" disabled>
+        <span class="examples-action">Examples</span>
+
       </button>
       <div class="toolbar-right">
         <a href="https://github.com/konsoletyper/teavm-javac" class="github-link" title="Source code"></a>
@@ -84,7 +81,7 @@
       </div>
     </div>
 
-    <div class="modal fade" tabindex="-1" role="dialog" id="examples">
+    <div class="modal" tabindex="-1" id="examples">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
