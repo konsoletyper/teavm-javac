@@ -264,7 +264,7 @@ public final class Compiler {
         new JCLPlugin().install(teavm);
         teavm.setEntryPoint(mainClass);
         target.setObfuscated(false);
-        target.setDebugInfoLocation(WasmDebugInfoLocation.EXTERNAL);
+        target.setDebugInfoLocation(WasmDebugInfoLocation.EMBEDDED);
         target.setDebugInfo(true);
         teavm.build(new MemoryBuildTarget(wasmOutputFiles), outputName);
         if (!diagnosticListeners.isEmpty()) {
