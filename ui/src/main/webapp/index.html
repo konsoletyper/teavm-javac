@@ -27,20 +27,36 @@
     </script>
     <script type="text/javascript" src="codemirror.min.js"></script>
     <script type="text/javascript" src="codemirror-clike.min.js"></script>
-    <script type="text/javascript" src="js/ui.js"></script>
     <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap-icons.min.css">
     <link rel="stylesheet" type="text/css" href="codemirror.min.css">
     <link rel="stylesheet" type="text/css" href="ui.css">
     <link rel="icon" type="image/png" href="favicon.png">
   </head>
-  <body onload="main()">
+  <body>
+    <script type="module">
+      import { load } from "./wasm-gc/ui.wasm-runtime.js";
+
+      document.body.onload = async () => {
+          let teavm = await load("wasm-gc/ui.wasm", {
+              stackDeobfuscator: {
+                  enabled: true
+              }
+          });
+          teavm.exports.setupUI({
+              workerLocation: "worker.js",
+              stdlibLocation: "compile-classlib-teavm.bin",
+              runtimeStdlibLocation: "runtime-classlib-teavm.bin"
+          });
+      }
+    </script>
     <div class="toolbar">
-      <button id="compile-button" class="btn btn-default" disabled>
-        <span class="glyphicon glyphicon-play" aria-hidden="true"></span>
+      <button id="compile-button" class="btn btn-primary" disabled>
+        <span class="bi bi-play" aria-hidden="true"></span>
         Run
       </button>
-      <button id="choose-example" class="btn btn-default" disabled>
-        <span class="glyphicon glyphicon-education" aria-hidden="true"></span>
+      <button id="choose-example" class="btn btn-secondary" disabled>
+        <span class="bi bi-journal-code" aria-hidden="true"></span>
         Examples
       </button>
       <div class="toolbar-right">

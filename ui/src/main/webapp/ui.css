@@ -42,7 +42,7 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 44px;
+    height: 54px;
     padding-top: 5px;
     padding-left: 6px;
     border-bottom: #E8E8E8 solid 1px;
@@ -50,7 +50,7 @@
 
 .content {
     position: fixed;
-    top: 44px;
+    top: 54px;
     bottom: 0;
     left: 0;
     right: 0;
@@ -136,7 +136,7 @@
     right: 6px;
     bottom: 0;
     top: 0;
-    line-height: 44px;
+    line-height: 54px;
 }
 
 .github-link {

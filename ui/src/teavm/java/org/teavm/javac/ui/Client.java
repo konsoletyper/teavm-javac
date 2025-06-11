@@ -31,6 +31,7 @@ import org.teavm.javac.ui.codemirror.CodeMirrorConfig;
 import org.teavm.javac.ui.codemirror.MarkOptions;
 import org.teavm.javac.ui.codemirror.TextLocation;
 import org.teavm.jso.JSBody;
+import org.teavm.jso.JSExport;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.ajax.XMLHttpRequest;
 import org.teavm.jso.browser.Window;
@@ -43,7 +44,6 @@ import org.teavm.jso.dom.html.HTMLButtonElement;
 import org.teavm.jso.dom.html.HTMLDocument;
 import org.teavm.jso.dom.html.HTMLElement;
 import org.teavm.jso.dom.html.HTMLIFrameElement;
-import org.teavm.jso.dom.html.HTMLMetaElement;
 import org.teavm.jso.json.JSON;
 import org.teavm.jso.typedarrays.Int8Array;
 import org.teavm.jso.workers.Worker;
@@ -71,8 +71,15 @@ public final class Client {
     private static HTMLElement examplesBackdrop;
     private static String examplesBaseUrl = "examples/";
     private static final Map<String, ExampleCategory> categories = new HashMap<>();
+    private static String workerLocation;
+    private static String stdlibLocation;
+    private static String runtimeStdlibLocation;
 
-    public static void main(String[] args) {
+    @JSExport
+    public static void setupUI(ClientOptions options) {
+        workerLocation = options.getWorkerLocation();
+        stdlibLocation = options.getStdlibLocation();
+        runtimeStdlibLocation = options.getRuntimeStdlibLocation();
         frame = (HTMLIFrameElement) HTMLDocument.current().getElementById("result");
         initEditor();
         initExamples();
@@ -160,7 +167,7 @@ public final class Client {
         progressElement.getStyle().setProperty("display", "block");
 
         var xhr = new XMLHttpRequest();
-        xhr.open("get", examplesBaseUrl + "/" + category + "/" + item + ".java");
+        xhr.open("get", examplesBaseUrl + category + "/" + item + ".java");
         xhr.onComplete(() -> {
             String code = xhr.getResponseText();
             codeMirror.setValue(code);
@@ -189,7 +196,8 @@ public final class Client {
         stdoutElement = HTMLDocument.current().getElementById("stdout");
         Window.current().onMessage((MessageEvent event) -> {
             var request = (FrameCommand) event.getData();
-            if (request.getCommand().equals("stdout")) {
+            if (!JSObjects.isUndefined(request.getCommand()) && request.getCommand() != null
+                    && request.getCommand().equals("stdout")) {
                 var stdoutCommand = (FrameStdoutCommand) request;
                 addToConsole(stdoutCommand.getLine(), false);
             }
@@ -219,30 +227,9 @@ public final class Client {
     private static JSPromise<Boolean> init() {
         compileButton.setDisabled(true);
 
-        var workerLocationElem = (HTMLMetaElement) HTMLDocument.current().getHead()
-                .querySelector("[property=workerLocation]");
-        if (workerLocationElem == null) {
-            Window.alert("Can't initialize: not workerLocation meta tag specified");
-            return JSPromise.reject(false);
-        }
-
-        var stdlibLocationElem = (HTMLMetaElement) HTMLDocument.current().getHead()
-                .querySelector("[property=stdlibLocation]");
-        if (stdlibLocationElem == null) {
-            Window.alert("Can't initialize: not stdlibLocation meta tag specified");
-            return JSPromise.reject(false);
-        }
-
-        var runtimeStdlibLocationElem = (HTMLMetaElement) HTMLDocument.current().getHead()
-                .querySelector("[property=runtimeStdlibLocation]");
-        if (runtimeStdlibLocationElem == null) {
-            Window.alert("Can't initialize: not runtimeStdlibLocation meta tag specified");
-            return JSPromise.reject(false);
-        }
-
-        worker = new Worker(workerLocationElem.getContent());
+        worker = new Worker(workerLocation);
         return waitForWorker()
-                .flatThen(v -> loadStandardLibrary(stdlibLocationElem, runtimeStdlibLocationElem));
+                .flatThen(v -> loadStandardLibrary());
     }
 
     private static JSPromise<Void> waitForWorker() {
@@ -261,11 +248,10 @@ public final class Client {
         });
     }
 
-    private static JSPromise<Boolean> loadStandardLibrary(HTMLMetaElement stdlibLocationElem,
-            HTMLMetaElement runtimeStdlibLocationElem) {
+    private static JSPromise<Boolean> loadStandardLibrary() {
         LoadStdlibMessage loadStdlib = createMessage("load-classlib");
-        loadStdlib.setUrl(stdlibLocationElem.getContent());
-        loadStdlib.setRuntimeUrl(runtimeStdlibLocationElem.getContent());
+        loadStdlib.setUrl(stdlibLocation);
+        loadStdlib.setRuntimeUrl(runtimeStdlibLocation);
         worker.postMessage(loadStdlib);
         return waitForResponse(loadStdlib).then(loadStdlibResult -> {
             if (!loadStdlibResult.getCommand().equals("ok")) {

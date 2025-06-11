@@ -16,7 +16,6 @@
 
 package org.teavm.javac.ui.codemirror;
 
-import org.teavm.jso.JSBody;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.core.JSArrayReader;
 import org.teavm.jso.dom.html.HTMLElement;

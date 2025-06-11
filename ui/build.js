@@ -19,18 +19,19 @@ import fs from "fs";
 if (!fs.existsSync("build/static")) {
     fs.mkdirSync("build/static");
 }
-if (!fs.existsSync("build/static/fonts")) {
-    fs.mkdirSync("build/static/fonts");
-}
 if (!fs.existsSync("build/static/css")) {
     fs.mkdirSync("build/static/css");
 }
+if (!fs.existsSync("build/static/css/fonts")) {
+    fs.mkdirSync("build/static/css/fonts");
+}
 
 copy("node_modules/bootstrap/dist/css/bootstrap.min.css", "build/static/css/bootstrap.min.css");
+copy("node_modules/bootstrap-icons/font/bootstrap-icons.min.css", "build/static/css/bootstrap-icons.min.css");
 
-let files = fs.readdirSync("node_modules/bootstrap/dist/fonts/");
+let files = fs.readdirSync("node_modules/bootstrap-icons/font/fonts/");
 for (let fileName of files) {
-    copy("node_modules/bootstrap/dist/fonts/" + fileName, "build/static/fonts/" + fileName);
+    copy("node_modules/bootstrap-icons/font/fonts/" + fileName, "build/static/css/fonts/" + fileName);
 }
 
 function copy(from, to) {
