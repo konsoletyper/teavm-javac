@@ -22,7 +22,8 @@ window.addEventListener("message", async function(event) {
     try {
          module = await load(request.code, {
             stackDeobfuscator: {
-                enabled: true
+                enabled: true,
+                path: "ui.wasm-deobfuscator.wasm"
             },
             installImports(o) {
                 o.teavmConsole.putcharStdout = putStdout;
