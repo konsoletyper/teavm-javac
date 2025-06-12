@@ -16,27 +16,24 @@
 
 package org.teavm.javac;
 
-import org.teavm.jso.JSExport;
-import org.teavm.jso.JSProperty;
-
 public abstract class BaseDiagnostic {
-    @JSExport
-    @JSProperty
-    public abstract String getType();
+    public String getType() {
+        throw new UnsupportedOperationException();
+    }
 
-    @JSExport
-    @JSProperty
-    public abstract String getSeverity();
+    public String getSeverity() {
+        throw new UnsupportedOperationException();
+    }
 
-    @JSExport
-    @JSProperty
-    public abstract String getMessage();
+    public String getMessage() {
+        throw new UnsupportedOperationException();
+    }
 
-    @JSExport
-    @JSProperty
-    public abstract int getLineNumber();
+    public int getLineNumber() {
+        throw new UnsupportedOperationException();
+    }
 
-    @JSExport
-    @JSProperty
-    public abstract String getFileName();
+    public String getFileName() {
+        throw new UnsupportedOperationException();
+    }
 }

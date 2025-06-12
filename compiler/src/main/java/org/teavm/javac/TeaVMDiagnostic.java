@@ -17,6 +17,8 @@
 package org.teavm.javac;
 
 import org.teavm.diagnostics.Problem;
+import org.teavm.jso.JSExport;
+import org.teavm.jso.JSProperty;
 
 public class TeaVMDiagnostic extends BaseDiagnostic {
     private Problem problem;
@@ -26,11 +28,15 @@ public class TeaVMDiagnostic extends BaseDiagnostic {
     }
 
     @Override
+    @JSExport
+    @JSProperty
     public String getType() {
         return "teavm";
     }
 
     @Override
+    @JSExport
+    @JSProperty
     public String getSeverity() {
         return switch (problem.getSeverity()) {
             case ERROR -> "error";
@@ -39,11 +45,15 @@ public class TeaVMDiagnostic extends BaseDiagnostic {
     }
 
     @Override
+    @JSExport
+    @JSProperty
     public String getMessage() {
         return problem.getText();
     }
 
     @Override
+    @JSExport
+    @JSProperty
     public int getLineNumber() {
         if (problem.getLocation().getSourceLocation() == null) {
             return -1;
@@ -52,6 +62,8 @@ public class TeaVMDiagnostic extends BaseDiagnostic {
     }
 
     @Override
+    @JSExport
+    @JSProperty
     public String getFileName() {
         if (problem.getLocation().getSourceLocation() == null) {
             return null;

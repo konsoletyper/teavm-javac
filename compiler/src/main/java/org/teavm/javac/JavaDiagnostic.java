@@ -30,11 +30,15 @@ public class JavaDiagnostic extends BaseDiagnostic {
     }
 
     @Override
+    @JSExport
+    @JSProperty
     public String getType() {
         return "javac";
     }
 
     @Override
+    @JSExport
+    @JSProperty
     public String getSeverity() {
         return switch (innerDiagnostic.getKind()) {
             case ERROR -> "error";
@@ -44,11 +48,15 @@ public class JavaDiagnostic extends BaseDiagnostic {
     }
 
     @Override
+    @JSExport
+    @JSProperty
     public String getMessage() {
         return innerDiagnostic.getMessage(Locale.ENGLISH);
     }
 
     @Override
+    @JSExport
+    @JSProperty
     public int getLineNumber() {
         return (int) innerDiagnostic.getLineNumber();
     }
@@ -60,6 +68,8 @@ public class JavaDiagnostic extends BaseDiagnostic {
     }
 
     @Override
+    @JSExport
+    @JSProperty
     public String getFileName() {
         return innerDiagnostic.getSource().getName();
     }

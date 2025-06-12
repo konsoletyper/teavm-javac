@@ -45,6 +45,10 @@
         let [compilerLib, sdk, classlib] = await Promise.all([loadCompiler(), loadSDK(), loadClasslib()]);
         let time = new Date().getTime();
         let compiler = compilerLib.createCompiler();
+        compiler.onDiagnostic(diagnostic => {
+            console.log(diagnostic.type, diagnostic.severity, diagnostic.fileName, diagnostic.lineNumber,
+                diagnostic.message);
+        })
         compiler.setSdk(sdk);
         compiler.setTeaVMClasslib(classlib);
         compiler.addSourceFile("Main.java", `
