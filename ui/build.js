@@ -25,15 +25,3 @@ if (!fs.existsSync("build/static/css")) {
 if (!fs.existsSync("build/static/css/fonts")) {
     fs.mkdirSync("build/static/css/fonts");
 }
-
-copy("node_modules/bootstrap/dist/css/bootstrap.min.css", "build/static/css/bootstrap.min.css");
-copy("node_modules/bootstrap-icons/font/bootstrap-icons.min.css", "build/static/css/bootstrap-icons.min.css");
-
-let files = fs.readdirSync("node_modules/bootstrap-icons/font/fonts/");
-for (let fileName of files) {
-    copy("node_modules/bootstrap-icons/font/fonts/" + fileName, "build/static/css/fonts/" + fileName);
-}
-
-function copy(from, to) {
-    fs.createReadStream(from).pipe(fs.createWriteStream(to));
-}

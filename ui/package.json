@@ -1,8 +1,6 @@
 {
   "dependencies": {
     "codemirror": "5.65.17",
-    "bootstrap": "5.0.0",
-    "bootstrap-icons": "1.13.1",
     "uglify-js": "3.19.3",
     "@node-minify/cli": "9.0.2",
     "@node-minify/clean-css": "9.0.1"
