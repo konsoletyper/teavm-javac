@@ -79,6 +79,7 @@ button:active {
     padding-top: 5px;
     padding-left: 6px;
     border-bottom: #E8E8E8 solid 1px;
+    box-sizing: border-box;
 }
 
 .content {
@@ -97,6 +98,7 @@ button:active {
     width: 50%;
     padding-right: 5px;
     border-right: #E8E8E8 solid 1px;
+    box-sizing: border-box;
 }
 
 .out-container {
@@ -106,6 +108,7 @@ button:active {
     bottom: 0;
     right: 0;
     padding-right: 5px;
+    box-sizing: border-box;
 }
 
 .CodeMirror {
@@ -124,6 +127,7 @@ button:active {
     bottom: 50%;
     right: 0;
     border-bottom: #E8E8E8 solid 1px;
+    box-sizing: border-box;
 }
 
 .result {
@@ -166,6 +170,7 @@ button:active {
     padding: 2px 8px 2px 8px;
     border-radius: 3px;
     text-transform: uppercase;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 .toolbar-right {
@@ -241,6 +246,7 @@ button:active {
     justify-content: center;
     align-items: center;
     background-color: #0000001F;
+    backdrop-filter: blur(2.5px);
 }
 
 .modal.modal-open {
@@ -248,16 +254,40 @@ button:active {
 }
 
 .modal-dialog {
-    min-width: 15em;
-    max-width: 30em;
-    max-height: 45em;
+    font-size: 14pt;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    min-width: 20em;
+    max-width: 40em;
+    max-height: 50em;
     overflow: auto;
-    border-radius: 0.25em;
+    border-radius: 0.5em;
     border-width: 1px;
     border-style: solid;
     border-color: #dddddd;
     background-color: white;
     padding: 0.5em;
+}
+
+.modal-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.25em;
+    padding-bottom: 0.25em;
+    border-bottom: #dddddd solid 1px;
+}
+.modal-header > button.close {
+    background: none;
+    border: none;
+    color: rgb(150,150,150);
+}
+.modal-header > button.close:hover {
+    color: rgb(180,180,180);
+}
+.modal-title {
+    padding: 0;
+    margin: 0;
 }
 
 .run-action::before {
