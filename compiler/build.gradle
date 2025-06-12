@@ -32,6 +32,11 @@ dependencies {
     classlibAuxInput libs.jzlib
 }
 
+sourceSets {
+    classlibEmu {
+    }
+}
+
 compileJava {
     options.compilerArgs.addAll("--limit-modules", "java.base")
 }
@@ -52,12 +57,17 @@ def classlibOutDir = project.layout.buildDirectory.dir("classlib")
 tasks.register("generateClassLib", JavaExec) {
     def output = classlibOutDir.map { it.file("compile-classlib-teavm.bin") }
     dependsOn configurations.classlibInput
+    dependsOn sourceSets.classlibEmu.output
     inputs.files configurations.classlibInput
+    inputs.files {
+        sourceSets.classlibEmu.output.classesDirs.collect { fileTree(it) }
+    }
     outputs.file output
     args {
         [
             output.get().asFile.absolutePath,
-            *configurations.classlibInput.files.collect { it.absolutePath }
+            *configurations.classlibInput.files.collect { it.absolutePath },
+            *sourceSets.classlibEmu.output.classesDirs.files.collect { it.absolutePath }
         ].iterator()
     }
     classpath sourceSets.main.output, sourceSets.main.runtimeClasspath

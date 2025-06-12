@@ -16,10 +16,15 @@
 
 package org.teavm.javac;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import org.objectweb.asm.AnnotationVisitor;
@@ -453,31 +458,32 @@ public class StdlibConverter extends ClassVisitor {
         try (var output = new ArchiveBuilder(new FileOutputStream(args[0]))) {
             var packageNames = new LinkedHashSet<String>();
             for (var i = 1; i < args.length; ++i) {
-                try (var input = new ZipInputStream(new FileInputStream(args[i]))) {
-                    while (true) {
-                        ZipEntry entry = input.getNextEntry();
-                        if (entry == null) {
-                            break;
-                        }
-                        if (entry.isDirectory() || !entry.getName().endsWith(".class")) {
-                            continue;
-                        }
-
-                        ClassReader reader = new ClassReader(input);
-                        ClassWriter writer = new ClassWriter(0);
-                        StdlibConverter converter = new StdlibConverter(writer);
-                        reader.accept(converter, ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES
-                                | ClassReader.SKIP_DEBUG);
-                        if (converter.visible) {
-                            var outputName = converter.className + ".class";
-                            output.append(outputName, writer.toByteArray());
-                        }
-                        if (converter.className != null) {
-                            var index = converter.className.lastIndexOf('/');
-                            if (index > 0) {
-                                packageNames.add(converter.className.substring(0, index));
+                var file = new File(args[i]);
+                if (file.isFile()) {
+                    try (var input = new ZipInputStream(new FileInputStream(args[i]))) {
+                        while (true) {
+                            ZipEntry entry = input.getNextEntry();
+                            if (entry == null) {
+                                break;
                             }
+                            if (entry.isDirectory() || !entry.getName().endsWith(".class")) {
+                                continue;
+                            }
+
+                            addFile(input, output, packageNames);
                         }
+                    }
+                } else {
+                    try (var stream = Files.walk(file.toPath())) {
+                        stream.forEach(path -> {
+                            if (Files.isRegularFile(path) && path.getFileName().toString().endsWith(".class")) {
+                                try {
+                                    addFile(Files.newInputStream(path), output, packageNames);
+                                } catch (IOException e) {
+                                    throw new UncheckedIOException(e);
+                                }
+                            }
+                        });
                     }
                 }
             }
@@ -490,6 +496,24 @@ public class StdlibConverter extends ClassVisitor {
                 }
                 mv.visitEnd();
                 output.append("module-info.class", writer.toByteArray());
+            }
+        }
+    }
+
+    private static void addFile(InputStream input, ArchiveBuilder output, Set<String> packageNames) throws IOException {
+        ClassReader reader = new ClassReader(input);
+        ClassWriter writer = new ClassWriter(0);
+        StdlibConverter converter = new StdlibConverter(writer);
+        reader.accept(converter, ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES
+                | ClassReader.SKIP_DEBUG);
+        if (converter.visible) {
+            var outputName = converter.className + ".class";
+            output.append(outputName, writer.toByteArray());
+        }
+        if (converter.className != null) {
+            var index = converter.className.lastIndexOf('/');
+            if (index > 0) {
+                packageNames.add(converter.className.substring(0, index));
             }
         }
     }
