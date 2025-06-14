@@ -14,7 +14,9 @@
  *  limitations under the License.
  */
 
-import { load } from './compiler.wasm-runtime.js'
+import { load } from './compiler.wasm-runtime.js';
+
+Error.stackTraceLimit = 100;
 
 window.addEventListener("message", async function(event) {
     let request = event.data;
