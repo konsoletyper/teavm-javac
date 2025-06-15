@@ -28,4 +28,10 @@ public interface ClientOptions extends JSObject {
 
     @JSProperty
     String getRuntimeStdlibLocation();
+
+    @JSProperty
+    String getExamplesLocation();
+
+    @JSProperty
+    String getFrameLocation();
 }

@@ -18,9 +18,6 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <meta property="workerLocation" content="worker.js">
-    <meta property="stdlibLocation" content="compile-classlib-teavm.bin">
-    <meta property="runtimeStdlibLocation" content="runtime-classlib-teavm.bin">
     <title>TeaVM &mdash; Online Java compiler (beta)</title>
     <script type="text/javascript">
       Error.stackTraceLimit = 50;
@@ -44,7 +41,9 @@
           teavm.exports.setupUI({
               workerLocation: "worker.js",
               stdlibLocation: "compile-classlib-teavm.bin",
-              runtimeStdlibLocation: "runtime-classlib-teavm.bin"
+              runtimeStdlibLocation: "runtime-classlib-teavm.bin",
+              examplesLocation: "examples/",
+              frameLocation: "frame.html"
           });
       }
     </script>

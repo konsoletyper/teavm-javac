@@ -68,7 +68,8 @@ public final class Client {
     private static HTMLElement[] gutterElements;
     private static int[] gutterSeverity;
     private static HTMLElement examplesDialog = HTMLDocument.current().getElementById("examples");
-    private static String examplesBaseUrl = "examples/";
+    private static String examplesBaseUrl;
+    private static String frameLocation;
     private static final Map<String, ExampleCategory> categories = new HashMap<>();
     private static String workerLocation;
     private static String stdlibLocation;
@@ -79,6 +80,8 @@ public final class Client {
         workerLocation = options.getWorkerLocation();
         stdlibLocation = options.getStdlibLocation();
         runtimeStdlibLocation = options.getRuntimeStdlibLocation();
+        examplesBaseUrl = options.getExamplesLocation();
+        frameLocation = options.getFrameLocation();
         frame = (HTMLIFrameElement) HTMLDocument.current().getElementById("result");
         initEditor();
         initExamples();
@@ -471,7 +474,7 @@ public final class Client {
 
         var document = Window.current().getDocument();
         frame = (HTMLIFrameElement) document.createElement("iframe");
-        frame.setSourceAddress("frame.html");
+        frame.setSourceAddress(frameLocation);
         frame.setWidth("1px");
         frame.setHeight("1px");
         frame.setClassName("result");
