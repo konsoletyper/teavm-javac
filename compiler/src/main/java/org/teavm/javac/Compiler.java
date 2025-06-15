@@ -85,14 +85,28 @@ public final class Compiler {
     }
 
     @JSExport
+    public void addOutputClassFile(String name, Int8Array content) {
+        addFile(outputFiles, name, content);
+    }
+
+    @JSExport
+    public void addOutputJarFile(String name, Int8Array content) throws IOException {
+        addJarFile(outputFiles, content);
+    }
+
+    @JSExport
     public void addJarFile(Int8Array content) throws IOException {
+        addJarFile(classFiles, content);
+    }
+
+    private void addJarFile(Map<String, FileData> target, Int8Array content) throws IOException {
         try (var input = new ZipInputStream(new ByteArrayInputStream(content.copyToJavaArray()))) {
             while (true) {
                 var entry = input.getNextEntry();
                 if (entry == null) {
                     break;
                 }
-                addFile(classFiles, entry.getName(), input.readAllBytes());
+                addFile(target, entry.getName(), input.readAllBytes());
             }
         }
     }
@@ -110,7 +124,6 @@ public final class Compiler {
             }
         }
     }
-
 
     @JSExport
     public void setTeaVMClasslib(Int8Array content) throws IOException {
