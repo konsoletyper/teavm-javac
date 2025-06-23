@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "dependencies": {
     "codemirror": "5.65.17",
     "uglify-js": "3.19.3",
