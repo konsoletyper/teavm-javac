@@ -32,9 +32,9 @@ The latest WebAssembly module can be found here: https://teavm.org/playground/co
 You should load it with TeaVM WebAssembly runtime. For example:
 
 ```js
-import { load } from "https://teavm.org/playground/compiler.wasm-runtime.js";
+import { load } from "./compiler.wasm-runtime.js";
 
-let teavm = await load("https://teavm.org/playground/compiler.wasm");
+let teavm = await load("./compiler.wasm");
 let compilerLib = teavm.exports;
 ```
 
