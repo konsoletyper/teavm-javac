@@ -1,4 +1,4 @@
-/.gradle
+.gradle
 /.idea/*
 !/.idea/copyright
 !/.idea/inspectionProfiles
