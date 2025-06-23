@@ -28,6 +28,19 @@ dependencyResolutionManagement {
         maven { url = uri("https://teavm.org/maven/repository") }
         mavenCentral()
         mavenLocal()
+        ivy {
+            name = "Node.js"
+            setUrl("https://nodejs.org/dist/")
+            patternLayout {
+                artifact("v[revision]/[artifact](-v[revision]-[classifier]).[ext]")
+            }
+            metadataSources {
+                artifact()
+            }
+            content {
+                includeModule("org.nodejs", "node")
+            }
+        }
     }
 }
 

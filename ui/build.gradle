@@ -33,6 +33,7 @@ node {
             .map { it == "true" }
             .map { !it }
             .orElse(true)
+    distBaseUrl = null
 }
 
 def generateStaticTask = tasks.register("generateStatic", NpmTask) {
