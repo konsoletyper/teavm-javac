@@ -257,7 +257,7 @@ public final class Compiler {
         var target = new WasmGCTarget();
         var refCache = new ReferenceCache();
         if (classSource == null) {
-            resourceProvider = new MemoryResourceProvider(List.of(teavmClasslibFiles, outputFiles));
+            resourceProvider = new MemoryResourceProvider(List.of(teavmClasslibFiles, classFiles, outputFiles));
             classSource = new ClasspathClassHolderSource(resourceProvider, refCache);
         }
         var currentResourceProvider = new CompositeResourceProvider(new MemoryResourceProvider(List.of(outputFiles)),
