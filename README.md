@@ -165,7 +165,7 @@ simple example:
 let response = await fetch("https://teavm.org/playground/compile-classlib-teavm.bin");
 compiler.setSdk(new Int8Array(await response.arrayBuffer()));
 
-response = await fetch("https://teavm.org/playground/compile-classlib-teavm.bin");
+response = await fetch("https://teavm.org/playground/runtime-classlib-teavm.bin");
 compiler.setTeaVMClasslib(new Int8Array(await response.arrayBuffer()));
 
 compiler.onDiagnostic(diagnostic => {
