@@ -36,7 +36,7 @@ public class MainMethodFinder extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        if (name.equals("main") && desc.equals("([Ljava/lang/String;)V")) {
+        if (name.equals("main") && (desc.equals("([Ljava/lang/String;)V") || desc.equals("()V"))) {
             hasMainMethod = true;
         }
         return null;

@@ -82,7 +82,7 @@ class FileData implements JavaFileObject {
     @Override
     public URI toUri() {
         try {
-            return new URI("teavm:", path, null);
+            return new URI("teavm:", "/" + path, null);
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }

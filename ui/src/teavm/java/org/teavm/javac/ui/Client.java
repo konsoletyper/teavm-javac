@@ -87,7 +87,7 @@ public final class Client {
         initExamples();
         initStdout();
         init();
-        compileButton.addEventListener("click", event -> {
+        compileButton.addEventListener("click", _ -> {
             compileButton.setDisabled(true);
             compile().then(code -> {
                 if (code != null) {
@@ -109,18 +109,18 @@ public final class Client {
         codeMirror = CodeMirror.fromTextArea(HTMLDocument.current().getElementById("source-code"), config);
 
         loadCode();
-        Window.current().onBeforeUnload(e -> saveCode());
-        Window.current().onBlur(e -> saveCode());
+        Window.current().onBeforeUnload(_ -> saveCode());
+        Window.current().onBlur(_ -> saveCode());
     }
 
     private static void initExamples() {
         var document = HTMLDocument.current();
 
         var chooseButton = (HTMLButtonElement) document.getElementById("choose-example");
-        chooseButton.onClick(event -> showExamples());
+        chooseButton.onClick(_ -> showExamples());
 
         var cancelButton = (HTMLButtonElement) document.getElementById("cancel-example-selection");
-        cancelButton.onClick(event -> hideExamples());
+        cancelButton.onClick(_ -> hideExamples());
 
         var request = new XMLHttpRequest();
         request.open("get", examplesBaseUrl + "examples.json");
@@ -157,7 +157,7 @@ public final class Client {
                 var itemElement = document.createElement("div");
                 itemElement.appendChild(document.createElement("span").withText(entry.getValue()));
                 itemElement.setClassName("example-item");
-                itemElement.onClick(event -> loadExample(categoryEntry.getKey(), entry.getKey()));
+                itemElement.onClick(_ -> loadExample(categoryEntry.getKey(), entry.getKey()));
                 container.appendChild(itemElement);
             }
         }
@@ -231,11 +231,11 @@ public final class Client {
 
         worker = new Worker(workerLocation);
         return waitForWorker()
-                .flatThen(v -> loadStandardLibrary());
+                .flatThen(_ -> loadStandardLibrary());
     }
 
     private static JSPromise<Void> waitForWorker() {
-        return new JSPromise<>((resolve, reject) -> {
+        return new JSPromise<>((resolve, _) -> {
             var regHolder = new Object() {
                 Registration reg;
             };
@@ -438,7 +438,7 @@ public final class Client {
     }
 
     private static <T extends WorkerMessage> JSPromise<T> waitForResponse(WorkerMessage request) {
-        return new JSPromise<>((resolve, reject) -> {
+        return new JSPromise<>((resolve, _) -> {
             class ResponseWait {
                 EventListener<MessageEvent> listener;
 

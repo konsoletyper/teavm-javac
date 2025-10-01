@@ -59,8 +59,8 @@ gradle.afterProject {
             toolVersion = extensions.getByType(VersionCatalogsExtension).named("libs")
                     .findVersion("checkstyle").get().requiredVersion
         }
-        java.sourceCompatibility = JavaVersion.VERSION_21
-        java.targetCompatibility = JavaVersion.VERSION_21
+        java.sourceCompatibility = JavaVersion.VERSION_25
+        java.targetCompatibility = JavaVersion.VERSION_25
     }
 }
 

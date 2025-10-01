@@ -6,7 +6,7 @@ plugins {
 def revision = providers.gradleProperty("jdk.revision").get()
 
 def downloadJDK = tasks.register("downloadJDK", Download) {
-    src "https://github.com/openjdk/jdk21/archive/${revision}.zip"
+    src "https://github.com/openjdk/jdk25u/archive/${revision}.zip"
     dest layout.buildDirectory.file("jdk-${revision}.zip")
     overwrite false
 }
@@ -18,7 +18,7 @@ def unpackJDK = tasks.register("unpackJDK", Sync) {
     exclude "**/module-info.java"
 }
 
-def baseJDKDir = layout.buildDirectory.dir("jdk/jdk21-${revision}").get()
+def baseJDKDir = layout.buildDirectory.dir("jdk/jdk25u-${revision}").get()
 
 def compileTools = tasks.register("compileTools", JavaCompile) {
     dependsOn unpackJDK
@@ -111,6 +111,7 @@ compileJava {
             "--limit-modules", "java.base",
             "--add-exports", "java.base/jdk.internal.javac=ALL-UNNAMED",
             "--add-exports", "java.base/jdk.internal.misc=ALL-UNNAMED",
+            "--add-exports", "java.base/jdk.internal.module=ALL-UNNAMED",
             "--add-exports", "java.base/sun.reflect.annotation=ALL-UNNAMED"
     )
     source fileTree(baseSrcDir.dir("java.base/share/classes/")) {
