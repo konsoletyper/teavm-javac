@@ -16,12 +16,14 @@
 
 package org.teavm.javac;
 
+import org.teavm.diagnostics.DefaultProblemTextConsumer;
 import org.teavm.diagnostics.Problem;
 import org.teavm.jso.JSExport;
 import org.teavm.jso.JSProperty;
 
 public class TeaVMDiagnostic extends BaseDiagnostic {
     private Problem problem;
+    private String message;
 
     public TeaVMDiagnostic(Problem problem) {
         this.problem = problem;
@@ -48,6 +50,11 @@ public class TeaVMDiagnostic extends BaseDiagnostic {
     @JSExport
     @JSProperty
     public String getMessage() {
+        if (message == null) {
+            var consumer = new DefaultProblemTextConsumer();
+            problem.render(consumer);
+            message = consumer.getText();
+        }
         return problem.getText();
     }
 
