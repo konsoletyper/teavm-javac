@@ -1,0 +1,12 @@
+concat: 42 1234567890123 3.25 x true null
+   42|ab   |ff|z
+a-b-c
+HelloHello trim me mixed
+4 6
+>cba123
+-100 150.0
+1010 ffffffff 9223372036854775807
+true Q 65
+compare: -1 true
+ok 529
+0.5 100.0 1.0E20 NaN 2.5

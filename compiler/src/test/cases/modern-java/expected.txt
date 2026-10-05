@@ -1,0 +1,19 @@
+Circle[radius=1.0] area=3.0
+Rectangle[width=2.0, height=3.0] area=6.0
+Square[side=4.0] area=16.0
+Square[side=0.0] area=-1.0
+true false
+true
+integer 5
+big integer 15
+string of length 5
+color green
+something else
+null
+RED 0 warm
+GREEN 1 cold
+BLUE 2 cold
+instanceof pattern: pattern
+first line
+  second line
+third "quoted" line

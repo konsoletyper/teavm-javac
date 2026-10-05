@@ -1,0 +1,4 @@
+write: ArrayIndexOutOfBoundsException
+read: ArrayIndexOutOfBoundsException
+int: ArithmeticException
+long: ArithmeticException

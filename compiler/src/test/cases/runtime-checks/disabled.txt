@@ -1,0 +1,1 @@
+Out-of-bounds array access and division by zero trap ('array element access out of bounds', 'divide by zero') instead of throwing, despite strict mode

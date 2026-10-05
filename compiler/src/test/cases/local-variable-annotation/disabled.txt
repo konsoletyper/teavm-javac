@@ -1,0 +1,1 @@
+Fails at runtime with 'Maximum call stack size exceeded'

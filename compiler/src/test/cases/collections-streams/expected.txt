@@ -1,0 +1,9 @@
+[fig, date, grape, apple, apple, cherry, banana]
+[apple, banana, cherry, date, fig, grape]
+{3=[fig], 4=[date], 5=[apple, grape], 6=[banana, cherry]}
+{banana=1, apple=2, cherry=1, date=1, fig=1, grape=1}
+220
+[BANANA, APPLE, CHERRY, DATE, FIG, APPLE, GRAPE]
+true
+3 6 34 7
+[0, 1, 2] 2 0

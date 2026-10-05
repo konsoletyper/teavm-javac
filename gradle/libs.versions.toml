@@ -2,6 +2,7 @@
 
 teavm = "0.16.0"
 asm = "9.8"
+junit-jupiter = "5.11.4"
 
 [libraries]
 
@@ -14,6 +15,10 @@ teavm-jso-apis = { module = "org.teavm:teavm-jso-apis", version.ref = "teavm" }
 teavm-interop = { module = "org.teavm:teavm-interop", version.ref = "teavm" }
 teavm-platform = { module = "org.teavm:teavm-platform", version.ref = "teavm" }
 asm-core = { module = "org.ow2.asm:asm", version.ref = "asm" }
+teavm-browser-runner = { module = "org.teavm:teavm-browser-runner", version.ref = "teavm" }
+jackson-databind = { module = "tools.jackson.core:jackson-databind", version = "3.1.4" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
+junit-platform-launcher = "org.junit.platform:junit-platform-launcher:1.11.4"
 jzlib = "com.jcraft:jzlib:1.1.3"
 
 [plugins]

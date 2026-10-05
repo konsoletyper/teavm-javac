@@ -30,6 +30,11 @@ dependencies {
     classlibAuxInput libs.teavm.interop
     classlibAuxInput libs.teavm.platform
     classlibAuxInput libs.jzlib
+
+    testImplementation libs.teavm.browser.runner
+    testImplementation libs.jackson.databind
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
 }
 
 sourceSets {
@@ -160,3 +165,35 @@ def createDist = tasks.register("createDist", Zip) {
 }
 
 artifacts.add("dist", createDist)
+
+def testHarnessDir = project.layout.buildDirectory.dir("test-harness")
+
+def prepareTestHarness = tasks.register("prepareTestHarness", Sync) {
+    dependsOn generateWasmGC
+    from("src/test/js")
+    from(layout.buildDirectory.dir("generated/teavm/wasm-gc")) {
+        include "compiler.wasm*"
+        exclude "*.html"
+        into "compiler"
+    }
+    from(buildTeaVMClassLib) {
+        into "classlib"
+    }
+    from(generateClassLib) {
+        into "classlib"
+    }
+    into testHarnessDir
+}
+
+test {
+    useJUnitPlatform()
+    dependsOn prepareTestHarness
+    inputs.dir testHarnessDir
+    inputs.dir "src/test/cases"
+    systemProperty "teavm.javac.test.harnessDir", testHarnessDir.get().asFile.absolutePath
+    systemProperty "teavm.javac.test.casesDir", file("src/test/cases").absolutePath
+    def browser = providers.gradleProperty("teavm.javac.test.browser")
+    if (browser.isPresent()) {
+        systemProperty "teavm.javac.test.browser", browser.get()
+    }
+}

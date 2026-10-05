@@ -66,7 +66,8 @@ class FileData implements JavaFileObject {
 
     @Override
     public boolean isNameCompatible(String simpleName, Kind kind) {
-        return path.equals(simpleName.replace('.', '/') + kind.extension);
+        var baseName = simpleName + kind.extension;
+        return kind == getKind() && (path.equals(baseName) || path.endsWith("/" + baseName));
     }
 
     @Override

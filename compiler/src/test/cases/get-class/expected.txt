@@ -1,0 +1,17 @@
+java.lang.Object simple=Object super=null array=false
+java.lang.String simple=String super=java.lang.Object array=false
+java.lang.Integer simple=Integer super=java.lang.Number array=false
+Main$Foo simple=Foo super=java.lang.Object array=false
+Main$Bar simple=Bar super=Main$Foo array=false
+Main$Baz simple=Baz super=java.lang.Object array=false
+java.util.ArrayList simple=ArrayList super=java.util.AbstractList array=false
+[I simple=int[] super=java.lang.Object array=true component=int
+[Ljava.lang.String; simple=String[] super=java.lang.Object array=true component=java.lang.String
+[[LMain$Foo; simple=Foo[][] super=java.lang.Object array=true component=[LMain$Foo;
+true
+true
+true
+true
+[interface Main$I]
+class Main$Bar
+java.lang.Runnable

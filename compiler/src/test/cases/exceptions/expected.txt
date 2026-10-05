@@ -1,0 +1,11 @@
+unwinding 1
+unwinding 2
+unwinding 3
+caught bottom reached code=42
+IllegalArgumentException: bad argument
+UnsupportedOperationException: unsupported
+no exception
+ClassCastException
+NullPointerException
+using resource
+resource closed
