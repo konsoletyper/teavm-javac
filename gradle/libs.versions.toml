@@ -1,6 +1,6 @@
 [versions]
 
-teavm = "0.13.1"
+teavm = "0.16.0"
 asm = "9.8"
 
 [libraries]
@@ -22,4 +22,4 @@ teavm = { id = "org.teavm", version.ref = "teavm" }
 teavm-library = { id = "org.teavm.library", version.ref = "teavm" }
 download = { id = "de.undercouch.download", version = "5.6.0" }
 nodejs = { id = "com.github.node-gradle.node", version = "7.1.0" }
-gretty = { id = "org.gretty", version = "4.1.6" }
+gretty = { id = "org.gretty", version = "5.0.2" }

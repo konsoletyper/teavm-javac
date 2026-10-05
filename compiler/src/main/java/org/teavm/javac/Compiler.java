@@ -48,6 +48,7 @@ import org.teavm.parsing.ClasspathClassHolderSource;
 import org.teavm.parsing.CompositeClassHolderSource;
 import org.teavm.parsing.resource.CompositeResourceProvider;
 import org.teavm.parsing.resource.ResourceProvider;
+import org.teavm.parsing.substitution.DefaultSubstituteClassNameMapping;
 import org.teavm.platform.plugin.PlatformPlugin;
 import org.teavm.vm.TeaVMBuilder;
 import org.teavm.vm.TeaVMOptimizationLevel;
@@ -258,14 +259,16 @@ public final class Compiler {
 
         var target = new WasmGCTarget();
         var refCache = new ReferenceCache();
+        var substitute = DefaultSubstituteClassNameMapping.createWithPolicies(List.of(
+                new ClasslibSubstitutionPolicy()));
         if (classSource == null) {
             resourceProvider = new MemoryResourceProvider(List.of(teavmClasslibFiles, classFiles, outputFiles));
-            classSource = new ClasspathClassHolderSource(resourceProvider, refCache);
+            classSource = new ClasspathClassHolderSource(resourceProvider, refCache, substitute);
         }
         var currentResourceProvider = new CompositeResourceProvider(new MemoryResourceProvider(List.of(outputFiles)),
                 resourceProvider);
         var currentClassSource = new CompositeClassHolderSource(List.of(
-                new ClasspathClassHolderSource(currentResourceProvider, refCache), classSource));
+                new ClasspathClassHolderSource(currentResourceProvider, refCache, substitute), classSource));
         var teavm = new TeaVMBuilder(target)
                 .setClassSource(currentClassSource)
                 .setResourceProvider(currentResourceProvider)
