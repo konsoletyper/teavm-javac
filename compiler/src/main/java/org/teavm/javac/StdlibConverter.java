@@ -23,7 +23,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -48,11 +51,15 @@ public class StdlibConverter extends ClassVisitor {
             "java/util/stream/longimpl",
             "java/util/stream/doubleimpl",
     };
+    private static final String RENAME_DESC = "Lorg/teavm/interop/Rename;";
     boolean visible;
     String className;
+    private Map<String, String> methodRenames;
+    private Set<String> emittedMethods = new HashSet<>();
 
-    public StdlibConverter(ClassVisitor cv) {
+    public StdlibConverter(ClassVisitor cv, Map<String, String> methodRenames) {
         super(Opcodes.ASM9, cv);
+        this.methodRenames = methodRenames;
     }
 
     @Override
@@ -123,7 +130,11 @@ public class StdlibConverter extends ClassVisitor {
         if ((access & Opcodes.ACC_PUBLIC) == 0 && ((access & Opcodes.ACC_PROTECTED) == 0)) {
             return null;
         }
+        name = methodRenames.getOrDefault(name + desc, name);
         desc = renameMethodDesc(desc);
+        if (!emittedMethods.add(name + desc)) {
+            return null;
+        }
         if (signature != null) {
             signature = renameMethodSignature(signature);
         }
@@ -163,7 +174,7 @@ public class StdlibConverter extends ClassVisitor {
 
         @Override
         public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-            if (!visible) {
+            if (!visible || desc.equals(RENAME_DESC)) {
                 return null;
             }
             desc = renameDesc(desc);
@@ -503,7 +514,7 @@ public class StdlibConverter extends ClassVisitor {
     private static void addFile(InputStream input, ArchiveBuilder output, Set<String> packageNames) throws IOException {
         ClassReader reader = new ClassReader(input);
         ClassWriter writer = new ClassWriter(0);
-        StdlibConverter converter = new StdlibConverter(writer);
+        StdlibConverter converter = new StdlibConverter(writer, collectMethodRenames(reader));
         reader.accept(converter, ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES
                 | ClassReader.SKIP_DEBUG);
         if (converter.visible) {
@@ -516,5 +527,35 @@ public class StdlibConverter extends ClassVisitor {
                 packageNames.add(converter.className.substring(0, index));
             }
         }
+    }
+
+    private static Map<String, String> collectMethodRenames(ClassReader reader) {
+        var renames = new HashMap<String, String>();
+        reader.accept(new ClassVisitor(Opcodes.ASM9) {
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String desc, String signature,
+                    String[] exceptions) {
+                if (name.equals("<init>")) {
+                    return null;
+                }
+                return new MethodVisitor(Opcodes.ASM9) {
+                    @Override
+                    public AnnotationVisitor visitAnnotation(String annotationDesc, boolean visible) {
+                        if (!annotationDesc.equals(RENAME_DESC)) {
+                            return null;
+                        }
+                        return new AnnotationVisitor(Opcodes.ASM9) {
+                            @Override
+                            public void visit(String key, Object value) {
+                                if (key.equals("value") && !value.equals("<init>") && !value.equals("fakeInit")) {
+                                    renames.put(name + desc, (String) value);
+                                }
+                            }
+                        };
+                    }
+                };
+            }
+        }, ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES | ClassReader.SKIP_DEBUG);
+        return renames;
     }
 }
