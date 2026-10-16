@@ -101,6 +101,12 @@ public class StdlibConverter extends ClassVisitor {
         if (superName.equals(name)) {
             superName = null;
         }
+        // A class library type that implements the JDK type it stands for (TAnnotation implements Annotation)
+        // would implement itself once renamed, and javac would go round that forever.
+        if (interfaces != null) {
+            final String self = name;
+            interfaces = java.util.Arrays.stream(interfaces).filter(i -> !i.equals(self)).toArray(String[]::new);
+        }
         super.visit(version, access, name, signature, superName, interfaces);
     }
 
@@ -150,6 +156,43 @@ public class StdlibConverter extends ClassVisitor {
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
         return super.visitAnnotation(desc, visible);
+    }
+
+    // Inner and nested classes are named in the class library's own packages (TMap$Entry), so their records must
+    // be renamed too, or javac can't find a member class such as Map.Entry.
+    @Override
+    public void visitInnerClass(String name, String outerName, String innerName, int access) {
+        super.visitInnerClass(rename(name), outerName != null ? rename(outerName) : null, innerName, access);
+    }
+
+    @Override
+    public void visitOuterClass(String owner, String name, String descriptor) {
+        super.visitOuterClass(rename(owner), name, descriptor != null ? renameMethodDesc(descriptor) : null);
+    }
+
+    @Override
+    public void visitNestHost(String nestHost) {
+        super.visitNestHost(rename(nestHost));
+    }
+
+    @Override
+    public void visitNestMember(String nestMember) {
+        super.visitNestMember(rename(nestMember));
+    }
+
+    @Override
+    public void visitPermittedSubclass(String permittedSubclass) {
+        super.visitPermittedSubclass(rename(permittedSubclass));
+    }
+
+    @Override
+    public void visitEnd() {
+        // TeaVM's SuppressWarnings has no value(), so javac can't read @SuppressWarnings("unchecked"): give it one.
+        if ("java/lang/SuppressWarnings".equals(className) && !emittedMethods.contains("value()[Ljava/lang/String;")) {
+            super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "value", "()[Ljava/lang/String;", null, null)
+                    .visitEnd();
+        }
+        super.visitEnd();
     }
 
     class FieldVisitorImpl extends FieldVisitor {
