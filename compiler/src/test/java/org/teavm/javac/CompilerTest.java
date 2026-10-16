@@ -24,7 +24,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -48,6 +47,11 @@ class CompilerTest {
             harness.close();
             harness = null;
         }
+    }
+
+    @Test
+    void annotations() throws IOException {
+        runCase("annotations");
     }
 
     @Test
@@ -81,10 +85,13 @@ class CompilerTest {
     }
 
     @Test
-    @Disabled("javac running in Wasm fails with 'Maximum call stack size exceeded' when compiling "
-            + "local variable annotations")
     void localVariableAnnotation() throws IOException {
         runCase("local-variable-annotation");
+    }
+
+    @Test
+    void memberClasses() throws IOException {
+        runCase("member-classes");
     }
 
     @Test

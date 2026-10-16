@@ -102,6 +102,10 @@ public class StdlibConverter extends ClassVisitor {
         if (superName.equals(name)) {
             superName = null;
         }
+        if (interfaces != null) {
+            final String self = name;
+            interfaces = java.util.Arrays.stream(interfaces).filter(i -> !i.equals(self)).toArray(String[]::new);
+        }
         super.visit(version, access, name, signature, superName, interfaces);
     }
 
@@ -151,6 +155,31 @@ public class StdlibConverter extends ClassVisitor {
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
         return super.visitAnnotation(desc, visible);
+    }
+
+    @Override
+    public void visitInnerClass(String name, String outerName, String innerName, int access) {
+        super.visitInnerClass(rename(name), outerName != null ? rename(outerName) : null, innerName, access);
+    }
+
+    @Override
+    public void visitOuterClass(String owner, String name, String descriptor) {
+        super.visitOuterClass(rename(owner), name, descriptor != null ? renameMethodDesc(descriptor) : null);
+    }
+
+    @Override
+    public void visitNestHost(String nestHost) {
+        super.visitNestHost(rename(nestHost));
+    }
+
+    @Override
+    public void visitNestMember(String nestMember) {
+        super.visitNestMember(rename(nestMember));
+    }
+
+    @Override
+    public void visitPermittedSubclass(String permittedSubclass) {
+        super.visitPermittedSubclass(rename(permittedSubclass));
     }
 
     class FieldVisitorImpl extends FieldVisitor {
