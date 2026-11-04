@@ -11,15 +11,5 @@ public class Main {
         } catch (ArrayIndexOutOfBoundsException e) {
             System.out.println("read: ArrayIndexOutOfBoundsException");
         }
-        try {
-            System.out.println(1 / args.length);
-        } catch (ArithmeticException e) {
-            System.out.println("int: ArithmeticException");
-        }
-        try {
-            System.out.println(1L % args.length);
-        } catch (ArithmeticException e) {
-            System.out.println("long: ArithmeticException");
-        }
     }
 }

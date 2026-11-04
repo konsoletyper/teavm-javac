@@ -34,24 +34,14 @@ import javax.tools.DiagnosticListener;
 import javax.tools.JavaFileManager;
 import javax.tools.JavaFileObject;
 import org.objectweb.asm.ClassReader;
-import org.teavm.backend.wasm.WasmDebugInfoLocation;
-import org.teavm.backend.wasm.WasmGCTarget;
-import org.teavm.classlib.impl.JCLPlugin;
+import org.teavm.compiler.bootstrap.ArchiveReader;
+import org.teavm.compiler.bootstrap.ByteArrayResourceProvider;
+import org.teavm.compiler.bootstrap.TeaVMBootstrapCompiler;
 import org.teavm.jso.JSClass;
 import org.teavm.jso.JSExport;
 import org.teavm.jso.core.JSObjects;
-import org.teavm.jso.impl.JSOPlugin;
 import org.teavm.jso.typedarrays.Int8Array;
-import org.teavm.model.ClassHolderSource;
-import org.teavm.model.ReferenceCache;
-import org.teavm.parsing.ClasspathClassHolderSource;
-import org.teavm.parsing.CompositeClassHolderSource;
-import org.teavm.parsing.resource.CompositeResourceProvider;
-import org.teavm.parsing.resource.ResourceProvider;
-import org.teavm.parsing.substitution.DefaultSubstituteClassNameMapping;
-import org.teavm.platform.plugin.PlatformPlugin;
-import org.teavm.vm.TeaVMBuilder;
-import org.teavm.vm.TeaVMOptimizationLevel;
+import org.teavm.vm.MemoryBuildTarget;
 import static com.sun.tools.javac.comp.CompileStates.CompileState;
 
 @JSClass(name = "Compiler")
@@ -59,13 +49,12 @@ public final class Compiler {
     private final Map<String, FileData> sourceFiles = new LinkedHashMap<>();
     private final Map<String, FileData> classFiles = new LinkedHashMap<>();
     private final Map<String, FileData> sdkFiles = new LinkedHashMap<>();
-    private final Map<String, FileData> teavmClasslibFiles = new LinkedHashMap<>();
     private final Map<String, FileData> outputFiles = new LinkedHashMap<>();
-    private final Map<String, FileData> wasmOutputFiles = new LinkedHashMap<>();
+    private final MemoryBuildTarget wasmOutput = new MemoryBuildTarget();
     private SimpleJavaCompiler compiler;
     private List<DiagnosticListenerRegistration> diagnosticListeners = new ArrayList<>();
-    private ResourceProvider resourceProvider;
-    private ClassHolderSource classSource;
+    private ByteArrayResourceProvider teavmClasslib;
+    private TeaVMBootstrapCompiler teavmCompiler;
 
     Compiler() {
     }
@@ -128,15 +117,8 @@ public final class Compiler {
 
     @JSExport
     public void setTeaVMClasslib(Int8Array content) throws IOException {
-        try (var input = new ArchiveReader(new ByteArrayInputStream(content.copyToJavaArray()))) {
-            while (true) {
-                var entry = input.readNext();
-                if (entry == null) {
-                    break;
-                }
-                addFile(teavmClasslibFiles, entry, input.readData());
-            }
-        }
+        teavmClasslib = ByteArrayResourceProvider.fromArchive(new ByteArrayInputStream(content.copyToJavaArray()));
+        teavmCompiler = null;
     }
 
     @JSExport
@@ -179,25 +161,25 @@ public final class Compiler {
 
     @JSExport
     public Int8Array getWebAssemblyOutputFile(String name) {
-        var data = wasmOutputFiles.get(name);
+        var data = wasmOutput.getContent(name);
         if (data == null) {
             return null;
         }
-        return Int8Array.copyFromJavaArray(data.data);
+        return Int8Array.copyFromJavaArray(data);
     }
 
     @JSExport
     public String[] listWebAssemblyOutputFiles() {
-        return wasmOutputFiles.keySet().toArray(String[]::new);
+        return wasmOutput.getNames().toArray(String[]::new);
     }
 
     @JSExport
     public Int8Array getWebAssemblyOutputArchive() throws IOException {
         var output = new ByteArrayOutputStream();
         try (var zip = new ZipOutputStream(output)) {
-            for (var file : wasmOutputFiles.values()) {
-                zip.putNextEntry(new ZipEntry(file.path));
-                zip.write(file.data);
+            for (var name : wasmOutput.getNames()) {
+                zip.putNextEntry(new ZipEntry(name));
+                zip.write(wasmOutput.getContent(name));
                 zip.closeEntry();
             }
         }
@@ -257,44 +239,31 @@ public final class Compiler {
         var strictMode = JSObjects.isUndefined(options.getStrictMode()) || options.getStrictMode().booleanValue();
         var obfuscated = JSObjects.isUndefined(options.getObfuscated()) || options.getObfuscated().booleanValue();
 
-        var target = new WasmGCTarget();
-        var refCache = new ReferenceCache();
-        var substitute = DefaultSubstituteClassNameMapping.createWithPolicies(List.of(
-                new ClasslibSubstitutionPolicy()));
-        if (classSource == null) {
-            resourceProvider = new MemoryResourceProvider(List.of(teavmClasslibFiles, classFiles, outputFiles));
-            classSource = new ClasspathClassHolderSource(resourceProvider, refCache, substitute);
+        if (teavmClasslib == null) {
+            throw new IllegalStateException("TeaVM class library not set");
         }
-        var currentResourceProvider = new CompositeResourceProvider(new MemoryResourceProvider(List.of(outputFiles)),
-                resourceProvider);
-        var currentClassSource = new CompositeClassHolderSource(List.of(
-                new ClasspathClassHolderSource(currentResourceProvider, refCache, substitute), classSource));
-        var teavm = new TeaVMBuilder(target)
-                .setClassSource(currentClassSource)
-                .setResourceProvider(currentResourceProvider)
-                .setReferenceCache(refCache)
-                .setObfuscated(obfuscated)
-                .setStrict(strictMode)
-                .build();
-        teavm.setOptimizationLevel(TeaVMOptimizationLevel.ADVANCED);
-        new JSOPlugin().install(teavm);
-        new PlatformPlugin().install(teavm);
-        new JCLPlugin().install(teavm);
-        teavm.setEntryPoint(mainClass);
-        target.setObfuscated(false);
-        target.setDebugInfoLocation(WasmDebugInfoLocation.EMBEDDED);
-        target.setDebugInfo(true);
-        target.setStrict(strictMode);
-        teavm.build(new MemoryBuildTarget(wasmOutputFiles), outputName);
+        if (teavmCompiler == null) {
+            teavmCompiler = new TeaVMBootstrapCompiler();
+            teavmCompiler.setClasslibResourceProvider(teavmClasslib);
+            teavmCompiler.setClassesResourceProvider(new MemoryResourceProvider(List.of(classFiles, outputFiles)));
+            teavmCompiler.setDebugInfo(true);
+        }
+        teavmCompiler.setMainClass(mainClass);
+        teavmCompiler.setOutputName(outputName);
+        teavmCompiler.setStrictMode(strictMode);
+        teavmCompiler.setObfuscated(obfuscated);
+        teavmCompiler.setBuildTarget(wasmOutput);
+        teavmCompiler.compile();
+        var problemProvider = teavmCompiler.getProblemProvider();
         if (!diagnosticListeners.isEmpty()) {
-            for (var problem : teavm.getProblemProvider().getProblems()) {
+            for (var problem : problemProvider.getProblems()) {
                 var wrapper = new TeaVMDiagnostic(problem);
                 for (var reg : diagnosticListeners) {
                     reg.listener.onDiagnostic(wrapper);
                 }
             }
         }
-        return teavm.getProblemProvider().getSevereProblems().isEmpty();
+        return problemProvider.getSevereProblems().isEmpty();
     }
 
     @JSExport

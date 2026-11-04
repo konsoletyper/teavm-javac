@@ -38,6 +38,7 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.teavm.compiler.bootstrap.tools.ArchiveBuilder;
 
 public class StdlibConverter extends ClassVisitor {
     private static final String PREFIX = "org/teavm/classlib/java/";

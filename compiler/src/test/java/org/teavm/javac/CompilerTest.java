@@ -22,17 +22,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 /**
- * Each subdirectory of the cases directory is a test case. It contains Java sources (with {@code Main} as the
- * main class) and {@code expected.txt} with the expected stdout. Test case is skipped if it contains
- * {@code disabled.txt}, whose content explains why.
+ * Each test method corresponds to a subdirectory of the cases directory ({@code src/test/cases}). The directory
+ * contains Java sources (with {@code Main} as the main class) and {@code expected.txt} with the expected stdout.
  */
 class CompilerTest {
     private static final String MAIN_CLASS = "Main";
@@ -53,25 +50,71 @@ class CompilerTest {
         }
     }
 
-    @TestFactory
-    Stream<DynamicTest> cases() throws IOException {
-        var casesDir = Path.of(System.getProperty("teavm.javac.test.casesDir", "src/test/cases"));
-        try (var dirs = Files.list(casesDir)) {
-            return dirs.filter(Files::isDirectory)
-                    .sorted()
-                    .map(dir -> DynamicTest.dynamicTest(dir.getFileName().toString(), dir.toUri(),
-                            () -> runCase(dir)))
-                    .toList()
-                    .stream();
-        }
+    @Test
+    void arrayClone() throws IOException {
+        runCase("array-clone");
     }
 
-    private void runCase(Path dir) throws IOException {
-        var disabled = dir.resolve("disabled.txt");
-        if (Files.exists(disabled)) {
-            Assumptions.abort(Files.readString(disabled).trim());
-        }
+    @Test
+    void collectionsStreams() throws IOException {
+        runCase("collections-streams");
+    }
 
+    @Test
+    void exceptions() throws IOException {
+        runCase("exceptions");
+    }
+
+    @Test
+    void getClassName() throws IOException {
+        runCase("get-class");
+    }
+
+    @Test
+    void helloWorld() throws IOException {
+        runCase("hello-world");
+    }
+
+    @Test
+    void innerClasses() throws IOException {
+        runCase("inner-classes");
+    }
+
+    @Test
+    @Disabled("javac running in Wasm fails with 'Maximum call stack size exceeded' when compiling "
+            + "local variable annotations")
+    void localVariableAnnotation() throws IOException {
+        runCase("local-variable-annotation");
+    }
+
+    @Test
+    void modernJava() throws IOException {
+        runCase("modern-java");
+    }
+
+    @Test
+    void multiFile() throws IOException {
+        runCase("multi-file");
+    }
+
+    @Test
+    void renamedMethods() throws IOException {
+        runCase("renamed-methods");
+    }
+
+    @Test
+    void runtimeChecks() throws IOException {
+        runCase("runtime-checks");
+    }
+
+    @Test
+    void strings() throws IOException {
+        runCase("strings");
+    }
+
+    private static void runCase(String name) throws IOException {
+        var casesDir = Path.of(System.getProperty("teavm.javac.test.casesDir", "src/test/cases"));
+        var dir = casesDir.resolve(name);
         var result = harness.run(collectSources(dir), MAIN_CLASS);
         assertEquals(CompilerTestResult.Status.OK, result.status(), result::describe);
         var expected = Files.readString(dir.resolve("expected.txt"));

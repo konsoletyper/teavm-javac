@@ -1,6 +1,6 @@
 [versions]
 
-teavm = "0.16.0"
+teavm = "0.17.0-dev-3"
 asm = "9.8"
 junit-jupiter = "5.11.4"
 
@@ -9,6 +9,7 @@ junit-jupiter = "5.11.4"
 teavm-core = { module = "org.teavm:teavm-core", version.ref = "teavm" }
 teavm-classlib = { module = "org.teavm:teavm-classlib", version.ref = "teavm" }
 teavm-tooling = { module = "org.teavm:teavm-tooling", version.ref = "teavm" }
+teavm-bootstrap-compiler = { module = "org.teavm:teavm-bootstrap-compiler", version.ref = "teavm" }
 teavm-jso-impl = { module = "org.teavm:teavm-jso-impl", version.ref = "teavm" }
 teavm-jso = { module = "org.teavm:teavm-jso", version.ref = "teavm" }
 teavm-jso-apis = { module = "org.teavm:teavm-jso-apis", version.ref = "teavm" }
