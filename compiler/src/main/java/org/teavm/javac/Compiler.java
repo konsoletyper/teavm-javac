@@ -36,10 +36,13 @@ import javax.tools.JavaFileObject;
 import org.objectweb.asm.ClassReader;
 import org.teavm.compiler.bootstrap.ArchiveReader;
 import org.teavm.compiler.bootstrap.ByteArrayResourceProvider;
+import org.teavm.compiler.bootstrap.CompileCallback;
 import org.teavm.compiler.bootstrap.TeaVMBootstrapCompiler;
 import org.teavm.jso.JSClass;
 import org.teavm.jso.JSExport;
+import org.teavm.jso.core.JSBoolean;
 import org.teavm.jso.core.JSObjects;
+import org.teavm.jso.core.JSPromise;
 import org.teavm.jso.typedarrays.Int8Array;
 import org.teavm.vm.MemoryBuildTarget;
 import static com.sun.tools.javac.comp.CompileStates.CompileState;
@@ -55,6 +58,7 @@ public final class Compiler {
     private List<DiagnosticListenerRegistration> diagnosticListeners = new ArrayList<>();
     private ByteArrayResourceProvider teavmClasslib;
     private TeaVMBootstrapCompiler teavmCompiler;
+    private boolean wasmCompilationInProgress;
 
     Compiler() {
     }
@@ -228,7 +232,7 @@ public final class Compiler {
     }
 
     @JSExport
-    public boolean generateWebAssembly(WebAssemblyCompilationOptions options) {
+    public JSPromise<JSBoolean> generateWebAssembly(WebAssemblyCompilationOptions options) {
         var outputName = options.getOutputName() != null && !JSObjects.isUndefined(options.getOutputName())
                 ? options.getOutputName().stringValue()
                 : "app";
@@ -238,9 +242,16 @@ public final class Compiler {
         var mainClass = options.getMainClass().stringValue();
         var strictMode = JSObjects.isUndefined(options.getStrictMode()) || options.getStrictMode().booleanValue();
         var obfuscated = JSObjects.isUndefined(options.getObfuscated()) || options.getObfuscated().booleanValue();
+        var assertionsRemoved = !JSObjects.isUndefined(options.getAssertionsRemoved())
+                && options.getAssertionsRemoved().booleanValue();
+        var asyncEnabled = JSObjects.isUndefined(options.getAsyncEnabled())
+                || options.getAsyncEnabled().booleanValue();
 
         if (teavmClasslib == null) {
             throw new IllegalStateException("TeaVM class library not set");
+        }
+        if (wasmCompilationInProgress) {
+            throw new IllegalStateException("WebAssembly generation is already in progress");
         }
         if (teavmCompiler == null) {
             teavmCompiler = new TeaVMBootstrapCompiler();
@@ -252,13 +263,44 @@ public final class Compiler {
         teavmCompiler.setOutputName(outputName);
         teavmCompiler.setStrictMode(strictMode);
         teavmCompiler.setObfuscated(obfuscated);
+        teavmCompiler.setAssertionsRemoved(assertionsRemoved);
+        teavmCompiler.setAsyncEnabled(asyncEnabled);
         teavmCompiler.setBuildTarget(wasmOutput);
-        teavmCompiler.compile();
+        wasmCompilationInProgress = true;
+        return new JSPromise<>((resolveFunc, rejectFunc) -> {
+            try {
+                teavmCompiler.compile(new CompileCallback() {
+                    @Override
+                    public void complete() {
+                        try {
+                            var success = reportTeaVMProblems();
+                            wasmCompilationInProgress = false;
+                            resolveFunc.accept(JSBoolean.valueOf(success));
+                        } catch (Throwable e) {
+                            wasmCompilationInProgress = false;
+                            rejectFunc.accept(e);
+                        }
+                    }
+
+                    @Override
+                    public void error(Throwable e) {
+                        wasmCompilationInProgress = false;
+                        rejectFunc.accept(e);
+                    }
+                });
+            } catch (Throwable e) {
+                wasmCompilationInProgress = false;
+                rejectFunc.accept(e);
+            }
+        });
+    }
+
+    private boolean reportTeaVMProblems() {
         var problemProvider = teavmCompiler.getProblemProvider();
         if (!diagnosticListeners.isEmpty()) {
             for (var problem : problemProvider.getProblems()) {
                 var wrapper = new TeaVMDiagnostic(problem);
-                for (var reg : diagnosticListeners) {
+                for (var reg : List.copyOf(diagnosticListeners)) {
                     reg.listener.onDiagnostic(wrapper);
                 }
             }

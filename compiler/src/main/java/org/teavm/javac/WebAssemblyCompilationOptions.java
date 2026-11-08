@@ -33,4 +33,10 @@ public interface WebAssemblyCompilationOptions extends JSObject {
 
     @JSProperty
     JSBoolean getObfuscated();
+
+    @JSProperty
+    JSBoolean getAssertionsRemoved();
+
+    @JSProperty
+    JSBoolean getAsyncEnabled();
 }

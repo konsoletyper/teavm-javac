@@ -90,7 +90,7 @@ async function runTest(request) {
         result.status = "JAVAC_FAILED";
         return result;
     }
-    if (!compiler.generateWebAssembly({ outputName: "app", mainClass: request.mainClass })) {
+    if (!await compiler.generateWebAssembly({ outputName: "app", mainClass: request.mainClass })) {
         result.status = "TEAVM_FAILED";
         return result;
     }

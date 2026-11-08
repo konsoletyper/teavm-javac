@@ -121,7 +121,11 @@ declare class Compiler {
     generateWebAssembly(options: {
         outputName: string, // base name for WebAssembly module
         mainClass: string, 
-    }): boolean
+        strictMode?: boolean, // true by default; produced module follows JVM spec in favour of speed
+        obfuscated?: boolean, // true by default; produced module has `name` section stripped off
+        assertionsRemoved?: boolean // false by default
+        asyncEnabled?: boolean // true by default
+    }): Promise<boolean>
 
     listWebAssemblyOutputFiles(): string[]
     getWebAssemblyOutputFile(path: string): Int8Array

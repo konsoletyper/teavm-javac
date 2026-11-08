@@ -90,28 +90,57 @@ public final class Worker {
                 });
                 break;
             case "compile":
-                compileAll((CompileMessage) request);
-                log("Done processing message: " + request.getId());
-                isBusy = false;
+                try {
+                    compileAll((CompileMessage) request, () -> {
+                        log("Done processing message: " + request.getId());
+                        isBusy = false;
+                    });
+                } catch (Throwable e) {
+                    isBusy = false;
+                    throw e;
+                }
                 break;
         }
     }
 
-    private void compileAll(CompileMessage request) throws IOException {
+    private void compileAll(CompileMessage request, Runnable done) throws IOException {
         createSourceFile(request.getText());
 
         CompilationResultMessage response = JSObjects.createWithoutProto();
         response.setId(request.getId());
         response.setCommand("compilation-complete");
 
-        if (doCompile(request) && detectMainClass(request) && generateWebAssembly(request.getId())) {
-            response.setStatus("successful");
-            response.setScript(readResultingFile());
+        if (doCompile(request) && detectMainClass(request)) {
+            generateWebAssembly(request.getId()).then(value -> {
+                if (!value.booleanValue()) {
+                    response.setStatus("errors");
+                } else {
+                    response.setStatus("successful");
+                    response.setScript(readResultingFile());
+                }
+                Window.worker().postMessage(response);
+                return null;
+            }).catchError(e -> {
+                log("Error occurred generating WebAssembly");
+                if (e instanceof Throwable t) {
+                    t.printStackTrace();
+                }
+                Window.worker().postMessage(createErrorResponse(request, "Error occurred generating WebAssembly: "
+                        + describeError(e)));
+                return null;
+            }).onSettled(() -> {
+                done.run();
+                return null;
+            });
         } else {
             response.setStatus("errors");
+            Window.worker().postMessage(response);
+            done.run();
         }
+    }
 
-        Window.worker().postMessage(response);
+    private static String describeError(Object e) {
+        return e instanceof Throwable t ? t.getMessage() : String.valueOf(e);
     }
 
     private void respondOk(WorkerMessage message) {
@@ -206,7 +235,7 @@ public final class Worker {
         return true;
     }
 
-    private boolean generateWebAssembly(String requestId) {
+    private JSPromise<JSBoolean> generateWebAssembly(String requestId) {
         var options = new WebAssemblyCompilationOptions() {
             @Override
             public JSString getOutputName() {
@@ -227,11 +256,27 @@ public final class Worker {
             public JSBoolean getObfuscated() {
                 return JSBoolean.valueOf(true);
             }
+
+            @Override
+            public JSBoolean getAssertionsRemoved() {
+                return JSBoolean.valueOf(false);
+            }
+
+            @Override
+            public JSBoolean getAsyncEnabled() {
+                return JSBoolean.valueOf(true);
+            }
         };
         var reg = compiler.onDiagnostic(diagnostic -> handleTeaVMDiagnostic((TeaVMDiagnostic) diagnostic, requestId));
-        var result = compiler.generateWebAssembly(options);
-        reg.destroy();
-        return result;
+        try {
+            return compiler.generateWebAssembly(options).onSettled(() -> {
+                reg.destroy();
+                return null;
+            });
+        } catch (Throwable e) {
+            reg.destroy();
+            throw e;
+        }
     }
 
     private void reportPhase(WorkerMessage request, TeaVMPhase phase) {

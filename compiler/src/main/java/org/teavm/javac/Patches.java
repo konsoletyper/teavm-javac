@@ -53,12 +53,6 @@ public class Patches implements TeaVMPlugin, ClassHolderTransformer {
             case "com.sun.tools.javac.comp.Modules":
                 transformModules(cls, context);
                 break;
-            case "java.lang.System":
-                transformSystem(cls, context);
-                break;
-            case "org.teavm.rhino.javascript.config.RhinoProperties":
-                transformRhinoProperties(cls, context);
-                break;
         }
     }
 
@@ -114,18 +108,5 @@ public class Patches implements TeaVMPlugin, ClassHolderTransformer {
                 ValueType.object("java.util.stream.Stream"), ValueType.object("java.util.stream.Stream")));
         var pe = ProgramEmitter.create(method, context.getHierarchy());
         pe.var(1, Stream.class).returnValue();
-    }
-
-    private void transformSystem(ClassHolder cls, ClassHolderTransformerContext context) {
-        var method = new MethodHolder(new MethodDescriptor("exit", ValueType.INTEGER, ValueType.VOID));
-        cls.addMethod(method);
-        var pe = ProgramEmitter.create(method, context.getHierarchy());
-        pe.construct(RuntimeException.class).raise();
-    }
-
-    private void transformRhinoProperties(ClassHolder cls, ClassHolderTransformerContext context) {
-        var method = cls.getMethod(new MethodDescriptor("init", ValueType.object(cls.getName())));
-        var pe = ProgramEmitter.create(method, context.getHierarchy());
-        pe.construct(cls.getName()).returnValue();
     }
 }

@@ -75,7 +75,7 @@
         console.log("Java compiler took " + (newTime - time) + " ms");
         time = newTime;
 
-        compiler.generateWebAssembly({
+        await compiler.generateWebAssembly({
             outputName: "app",
             mainClass: "Main"
         });
