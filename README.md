@@ -47,7 +47,7 @@ declare interface CompilerLibrary {
 } 
 ```
 
-where `installWorker` is a convenience function that installs simple worker protocol which is described below.
+where `installWorker` installs a handler of the worker protocol in the current web worker, see [below](#using-compiler-in-a-web-worker).
 
 `Compiler` is defined as follows:
 
@@ -193,70 +193,145 @@ In a more complex scenario, you can re-use existing compiler instance without pa
 This should also make repeated compilation faster, since compilers can re-use results of previous builds.
 
 
-### Using simple worker
+### Using compiler in a web worker
 
-When the worker initializes, it sends the following message to the page:
+Compilation is CPU-intensive and blocks the thread it runs on, so you'll likely want to run the compiler
+in a web worker. The `worker` module provides both sides of this setup:
+
+* the worker side is the `installWorker` function of the compiler library;
+* the client side is a small separate WebAssembly module (`worker-client.wasm`), which spawns
+  the worker and communicates with it.
+
+Both are included in `dist.zip` (see [Building library from sources](#building-library-from-sources)).
+
+First, create a worker script, e.g. `worker.js`:
 
 ```js
-{
-    command: "initialized"
+(async function() {
+    let { load } = await import("./compiler.wasm-runtime.js");
+    let teavm = await load("compiler.wasm");
+    teavm.exports.installWorker();
+})();
+```
+
+Then, on the page, load the client module and spawn the worker:
+
+```js
+import { load } from "./worker-client.wasm-runtime.js";
+
+let clientLib = (await load("./worker-client.wasm")).exports;
+let worker = await clientLib.createCompilerWorker("worker.js");
+```
+
+where `clientLib` is defined as follows:
+
+```ts
+declare interface WorkerClientLibrary {
+    // Spawns worker from given script and waits until it reports that it's initialized
+    createCompilerWorker(workerUrl: string): Promise<CompilerWorker>
 }
 ```
 
-When you send a message to the worker, you should pass additional `id` property,
-worker will tag its responses to given request with the same `id`.
+`CompilerWorker` is defined as follows:
 
-Available requests:
+```ts
+declare class CompilerWorker {
+    // Makes worker download class libraries for javac and for TeaVM 
+    // (see `setSdk` and `setTeaVMClasslib` above).
+    // Should be called before first compilation.
+    loadClasslib(sdkUrl: string, runtimeUrl: string): Promise<void>
 
-```js
-{
-    command: "load-classlib",
-    url: "URL of Java class library for javac",
-    runtimeUrl: "URL of Java class library for TeaVM"
+    // Source files are stored on the client side and are sent to the worker 
+    // on each `compile` call. Path should correspond to the package of the class,
+    // e.g. `com/example/Foo.java`.
+    addSourceFile(path: string, content: string)
+    removeSourceFile(path: string)
+    getSourceFile(path: string): string | null
+    listSourceFiles(): string[]
+    clearSourceFiles()
+
+    onDiagnostic(listener: (WorkerDiagnostic) => void): WorkerListenerRegistration
+
+    // Compiles all source files with javac and then generates WebAssembly module with TeaVM.
+    // If `options.mainClass` is not specified, worker looks for a class with `main` method
+    // and reports an error if there's none or more than one.
+    // Rejects if worker fails unexpectedly; compilation errors are reported 
+    // via diagnostics and `successful: false`.
+    compile(options?: {
+        outputName?: string, // "app" by default; base name for WebAssembly module
+        mainClass?: string,
+        strictMode?: boolean, // true by default
+        obfuscated?: boolean, // true by default
+        assertionsRemoved?: boolean, // false by default
+        asyncEnabled?: boolean // true by default
+    }): Promise<WorkerCompilationResult>
+
+    // Terminates the worker, rejecting all pending requests
+    terminate()
+}
+
+interface WorkerCompilationResult {
+    successful: boolean
+    wasm: Int8Array | null // generated WebAssembly module, if successful
+}
+
+interface WorkerDiagnostic {
+    type: "javac" | "teavm"
+    severity: "error" | "warning" | "other"
+    fileName: string | null
+    lineNumber: number
+    message: string
+    // The following properties are only available for "javac" diagnostics, otherwise -1
+    columnNumber: number
+    startPosition: number
+    position: number
+    endPosition: number
+}
+
+interface WorkerListenerRegistration {
+    destroy()
 }
 ```
 
-which is responded with
+Requests to the worker are processed one by one, so you don't have to wait for completion of a previous call
+before making the next one. Note that source files and options are captured at the moment of `compile` call.
+
+Example:
 
 ```js
-{
-    command: "ok"
+worker.onDiagnostic(diagnostic => {
+    console.log(diagnostic.type, diagnostic.severity, diagnostic.fileName, diagnostic.lineNumber,
+        diagnostic.message);
+});
+await worker.loadClasslib("compile-classlib-teavm.bin", "runtime-classlib-teavm.bin");
+
+worker.addSourceFile("Main.java", `
+    import com.example.Greeter;
+    public class Main {
+        public static void main(String[] args) {
+            System.out.println(Greeter.greet("world"));
+        }
+    }
+`);
+worker.addSourceFile("com/example/Greeter.java", `
+    package com.example;
+    public class Greeter {
+        public static String greet(String name) {
+            return "Hello, " + name + "!";
+        }
+    }
+`);
+
+let result = await worker.compile({ mainClass: "Main", obfuscated: false });
+if (result.successful) {
+    let app = await load(result.wasm);
+    app.exports.main([]);
 }
 ```
 
-upon completion, and 
-
-```js
-{
-    command: "compile",
-    text: "text of Main.java"
-}
-```
-
-which is responded with:
-
-```js
-{
-    command: "compilation-complete",
-    status: "successful" | "errors"
-    script: result /* Int8Array, containing WebAssembly module, if successful */
-}
-```
-
-Additionally, worker sends the following messages during compilation:
-
-```js
-{
-    command: "compiler-diagnostic" | "diagnostic",
-    severity: "error" | "warning" | "other",
-    fileName: string,
-    lineNumber: number,
-    // etc, see JavaDiagnostic and TeaVMDiagnostic
-}
-```
-
-where `compiler-diagnostic` stands for "Java compiler diagnostic" and `diagnostic` stands for
-"TeaVM diagnostic"
+The client is written in Java (see `org.teavm.javac.worker.CompilerWorker`), so you can use it directly
+from a TeaVM application by depending on the `worker` module, as `ui` module does.
+Underlying messages exchanged with the worker are described by interfaces in `org.teavm.javac.protocol` package.
 
 
 ### Building library from sources
@@ -275,7 +350,7 @@ Library can be found at `compiler/build/distributions/dist.zip`.
 ## Roadmap
 
 * ~~Document compiler library API~~
-* Run TeaVM tests against this compiler
+* ~~Run TeaVM tests against this compiler~~
 * Java parsing/AST attribution API
 * Semantic highlighting and autocompletion
 

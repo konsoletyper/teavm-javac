@@ -19,34 +19,27 @@ package org.teavm.javac.ui;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import org.teavm.javac.protocol.CompilationResultMessage;
-import org.teavm.javac.protocol.CompileMessage;
-import org.teavm.javac.protocol.CompilerDiagnosticMessage;
-import org.teavm.javac.protocol.ErrorMessage;
-import org.teavm.javac.protocol.LoadStdlibMessage;
-import org.teavm.javac.protocol.TeaVMDiagnosticMessage;
-import org.teavm.javac.protocol.WorkerMessage;
 import org.teavm.javac.ui.codemirror.CodeMirror;
 import org.teavm.javac.ui.codemirror.CodeMirrorConfig;
 import org.teavm.javac.ui.codemirror.MarkOptions;
 import org.teavm.javac.ui.codemirror.TextLocation;
-import org.teavm.jso.JSBody;
+import org.teavm.javac.worker.CompilerWorker;
+import org.teavm.javac.worker.WorkerDiagnostic;
 import org.teavm.jso.JSExport;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.ajax.XMLHttpRequest;
 import org.teavm.jso.browser.Window;
+import org.teavm.jso.core.JSError;
 import org.teavm.jso.core.JSObjects;
 import org.teavm.jso.core.JSPromise;
 import org.teavm.jso.dom.events.EventListener;
 import org.teavm.jso.dom.events.MessageEvent;
-import org.teavm.jso.dom.events.Registration;
 import org.teavm.jso.dom.html.HTMLButtonElement;
 import org.teavm.jso.dom.html.HTMLDocument;
 import org.teavm.jso.dom.html.HTMLElement;
 import org.teavm.jso.dom.html.HTMLIFrameElement;
 import org.teavm.jso.json.JSON;
 import org.teavm.jso.typedarrays.Int8Array;
-import org.teavm.jso.workers.Worker;
 
 public final class Client {
     private Client() {
@@ -56,13 +49,14 @@ public final class Client {
     private static final int WARNING = 1;
     private static final int ERROR = 2;
 
-    private static Worker worker;
+    private static final String SOURCE_FILE_NAME = "Main.java";
+
+    private static CompilerWorker worker;
     private static HTMLButtonElement compileButton = (HTMLButtonElement) HTMLDocument.current()
             .getElementById("compile-button");
     private static HTMLButtonElement examplesButton = (HTMLButtonElement) HTMLDocument.current().getElementById(
             "choose-example");
     private static HTMLElement stdoutElement;
-    private static int lastId;
     private static CodeMirror codeMirror;
     private static PositionIndexer positionIndexer;
     private static HTMLElement[] gutterElements;
@@ -229,40 +223,20 @@ public final class Client {
     private static JSPromise<Boolean> init() {
         compileButton.setDisabled(true);
 
-        worker = new Worker(workerLocation);
-        return waitForWorker()
-                .flatThen(_ -> loadStandardLibrary());
-    }
-
-    private static JSPromise<Void> waitForWorker() {
-        return new JSPromise<>((resolve, _) -> {
-            var regHolder = new Object() {
-                Registration reg;
-            };
-            regHolder.reg = worker.onMessage(event -> {
-                var message = (WorkerMessage) event.getData();
-                if (message.getCommand().equals("initialized")) {
-                    regHolder.reg.dispose();
+        return CompilerWorker.create(workerLocation)
+                .flatThen(createdWorker -> {
                     System.out.println("Worker reported initialization");
-                    resolve.accept(null);
-                }
-            });
-        });
-    }
-
-    private static JSPromise<Boolean> loadStandardLibrary() {
-        LoadStdlibMessage loadStdlib = createMessage("load-classlib");
-        loadStdlib.setUrl(stdlibLocation);
-        loadStdlib.setRuntimeUrl(runtimeStdlibLocation);
-        worker.postMessage(loadStdlib);
-        return waitForResponse(loadStdlib).then(loadStdlibResult -> {
-            if (!loadStdlibResult.getCommand().equals("ok")) {
-                Window.alert("Could not load standard library: " + ((ErrorMessage) loadStdlibResult).getText());
-                return false;
-            }
-            compileButton.setDisabled(false);
-            return true;
-        });
+                    worker = createdWorker;
+                    worker.onDiagnostic(Client::handleDiagnostic);
+                    return worker.loadClasslib(stdlibLocation, runtimeStdlibLocation);
+                })
+                .then(_ -> {
+                    compileButton.setDisabled(false);
+                    return true;
+                }, error -> {
+                    Window.alert("Could not load standard library: " + errorMessage((JSObject) error));
+                    return false;
+                });
     }
 
     private static JSPromise<Int8Array> compile() {
@@ -276,36 +250,26 @@ public final class Client {
         gutterElements = new HTMLElement[codeMirror.lineCount()];
         gutterSeverity = new int[codeMirror.lineCount()];
 
-        CompileMessage request = createMessage("compile");
         String code = codeMirror.getValue();
         positionIndexer = new PositionIndexer(code);
-        request.setText(code);
-        worker.postMessage(request);
+        worker.clearSourceFiles();
+        worker.addSourceFile(SOURCE_FILE_NAME, code);
 
-        return waitForCompilationResult(request);
-    }
-
-    private static JSPromise<Int8Array> waitForCompilationResult(CompileMessage request) {
-        return waitForResponse(request).flatThen(response -> {
-            switch (response.getCommand()) {
-                case "compilation-complete": {
-                    var compilationResult = (CompilationResultMessage) response;
-                    return JSPromise.resolve(compilationResult.getStatus().equals("successful")
-                            ? compilationResult.getScript()
-                            : null);
-                }
-                case "compiler-diagnostic":
-                    handleCompilerDiagnostic((CompilerDiagnosticMessage) response);
-                    break;
-                case "diagnostic":
-                    handleDiagnostic((TeaVMDiagnosticMessage) response);
-                    break;
-            }
-            return waitForCompilationResult(request);
+        return worker.compile(null).then(result -> result.isSuccessful() ? result.getWasm() : null, error -> {
+            addTextToConsole("Compilation failed: " + errorMessage((JSObject) error), true, true);
+            return null;
         });
     }
 
-    private static void handleCompilerDiagnostic(CompilerDiagnosticMessage request) {
+    private static void handleDiagnostic(WorkerDiagnostic diagnostic) {
+        if (diagnostic.getType().equals("javac")) {
+            handleCompilerDiagnostic(diagnostic);
+        } else {
+            handleTeaVMDiagnostic(diagnostic);
+        }
+    }
+
+    private static void handleCompilerDiagnostic(WorkerDiagnostic request) {
         StringBuilder sb = new StringBuilder();
         switch (request.getSeverity()) {
             case "error":
@@ -332,8 +296,8 @@ public final class Client {
         }
     }
 
-    private static void handleDiagnostic(TeaVMDiagnosticMessage request) {
-        StringBuilder sb = new StringBuilder(request.getSeverity()).append(' ');
+    private static void handleTeaVMDiagnostic(WorkerDiagnostic request) {
+        StringBuilder sb = new StringBuilder(request.getSeverity().toUpperCase()).append(' ');
 
         if (request.getFileName() != null) {
             sb.append("at " + request.getFileName());
@@ -342,26 +306,26 @@ public final class Client {
             }
             sb.append(' ');
         }
-        sb.append(request.getText());
+        sb.append(request.getMessage());
         addTextToConsole(sb.toString(), true, false);
 
-        if (request.getLineNumber() >= 0) {
+        if (request.getLineNumber() >= 0 && request.getLineNumber() < gutterSeverity.length) {
             int severity;
             switch (request.getSeverity()) {
-                case "ERROR":
+                case "error":
                     severity = ERROR;
                     break;
-                case "WARNING":
+                case "warning":
                     severity = WARNING;
                     break;
                 default:
                     return;
             }
-            addGutterDiagnostic(severity, request.getLineNumber(), request.getText());
+            addGutterDiagnostic(severity, request.getLineNumber(), request.getMessage());
         }
     }
 
-    private static void displayMarkInEditor(CompilerDiagnosticMessage request) {
+    private static void displayMarkInEditor(WorkerDiagnostic request) {
         Position start = positionIndexer.getPositionAt(request.getStartPosition(), true);
         if (start.line >= gutterElements.length) {
             return;
@@ -430,39 +394,9 @@ public final class Client {
         codeMirror.setGutterMarker(line, DIAGNOSTICS_GUTTER, element);
     };
 
-    private static <T extends WorkerMessage> T createMessage(String command) {
-        T message = JSObjects.createWithoutProto();
-        message.setCommand(command);
-        message.setId(String.valueOf(lastId++));
-        return message;
+    private static String errorMessage(JSObject error) {
+        return error instanceof JSError jsError ? jsError.getMessage() : JSObjects.toString(error);
     }
-
-    private static <T extends WorkerMessage> JSPromise<T> waitForResponse(WorkerMessage request) {
-        return new JSPromise<>((resolve, _) -> {
-            class ResponseWait {
-                EventListener<MessageEvent> listener;
-
-                void run() {
-                    listener = event -> {
-                        if (!isMessage(event.getData())) {
-                            return;
-                        }
-                        var message = (WorkerMessage) event.getData();
-                        if (message.getId().equals(request.getId())) {
-                            worker.removeEventListener("message", listener);
-                            //noinspection unchecked
-                            resolve.accept((T) message);
-                        }
-                    };
-                    worker.addEventListener("message", listener);
-                }
-            }
-            new ResponseWait().run();
-        });
-    }
-
-    @JSBody(params = "object", script = "return 'id' in object && typeof object.id === 'string';")
-    private static native boolean isMessage(JSObject object);
 
     private static HTMLIFrameElement frame;
     private static EventListener<MessageEvent> listener;

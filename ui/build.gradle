@@ -16,7 +16,7 @@ configurations {
 
 dependencies {
     teavmImplementation teavm.libs.jsoApis
-    teavmImplementation project(":protocol")
+    teavmImplementation project(":worker")
     webapp project(path: ":compiler", configuration: "dist")
 }
 

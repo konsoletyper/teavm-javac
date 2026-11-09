@@ -29,8 +29,9 @@ import org.teavm.browserrunner.BrowserRunner;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Runs the compiler in a browser: sends Java sources to {@code harness.js}, which compiles them to WebAssembly
- * with the compiler built from this project, runs the result and reports back output and diagnostics.
+ * Runs the compiler in a browser: sends Java sources to a harness script (e.g. {@code harness.js}), which compiles
+ * them to WebAssembly with the compiler built from this project, runs the result and reports back output
+ * and diagnostics.
  */
 public class CompilerTestHarness implements AutoCloseable {
     private static final String RESULT_MARKER = "TEAVM_JAVAC_TEST_RESULT ";
@@ -38,9 +39,14 @@ public class CompilerTestHarness implements AutoCloseable {
     private final PrintStream originalOut;
     private final OutputCapture capture;
     private final BrowserRunner runner;
+    private final String script;
     private int runIndex;
 
-    public CompilerTestHarness(File harnessDir, String browser) {
+    /**
+     * @param script path of the harness script relative to {@code harnessDir}, e.g. {@code harness.js}.
+     */
+    public CompilerTestHarness(File harnessDir, String script, String browser) {
+        this.script = script;
         // BrowserRunner from TeaVM 0.16.0 prints browser output to System.out and does not offer any other way
         // to obtain it, so we intercept System.out to pick up the line with the result.
         originalOut = System.out;
@@ -57,7 +63,7 @@ public class CompilerTestHarness implements AutoCloseable {
 
     public CompilerTestResult run(Map<String, String> sources, String mainClass) throws IOException {
         var request = objectMapper.writeValueAsString(Map.of("sources", sources, "mainClass", mainClass));
-        var descriptor = new BrowserRunDescriptor("compile-" + ++runIndex, "tests/harness.js", true, List.of(),
+        var descriptor = new BrowserRunDescriptor("compile-" + ++runIndex, "tests/" + script, true, List.of(),
                 request, true);
         List<String> results;
         capture.startRecording();

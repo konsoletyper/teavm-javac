@@ -66,5 +66,5 @@ gradle.afterProject {
 
 include "javac"
 include "compiler"
-include "protocol"
+include "worker"
 include "ui"

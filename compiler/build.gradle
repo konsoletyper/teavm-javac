@@ -18,7 +18,7 @@ configurations {
 
 dependencies {
     implementation project(":javac")
-    implementation project(":protocol")
+    implementation project(":worker")
     compileOnly libs.teavm.core
     implementation libs.teavm.tooling
     implementation libs.teavm.bootstrap.compiler
@@ -106,6 +106,10 @@ def createDist = tasks.register("createDist", Zip) {
     from buildTeaVMClassLib
     from generateClassLib
     from layout.buildDirectory.dir("generated/teavm/wasm-gc")
+    dependsOn ":worker:buildWasmGC"
+    from(project(":worker").layout.buildDirectory.dir("generated/teavm/wasm-gc")) {
+        include "worker-client.wasm*"
+    }
     exclude "src/**"
     archiveBaseName = "dist"
 }
@@ -115,12 +119,18 @@ artifacts.add("dist", createDist)
 def testHarnessDir = project.layout.buildDirectory.dir("test-harness")
 
 def prepareTestHarness = tasks.register("prepareTestHarness", Sync) {
-    dependsOn generateWasmGC
+    dependsOn buildWasmGC
     from("src/test/js")
     from(layout.buildDirectory.dir("generated/teavm/wasm-gc")) {
         include "compiler.wasm*"
         exclude "*.html"
         into "compiler"
+    }
+    dependsOn ":worker:buildWasmGC"
+    from(project(":worker").layout.buildDirectory.dir("generated/teavm/wasm-gc")) {
+        include "worker-client.wasm*"
+        exclude "*.html"
+        into "worker-client"
     }
     from(buildTeaVMClassLib) {
         into "classlib"

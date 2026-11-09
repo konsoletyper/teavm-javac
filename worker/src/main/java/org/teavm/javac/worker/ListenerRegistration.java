@@ -1,5 +1,5 @@
 /*
- *  Copyright 2017 Alexey Andreev.
+ *  Copyright 2026 Alexey Andreev.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -14,32 +14,25 @@
  *  limitations under the License.
  */
 
-package org.teavm.javac.protocol;
+package org.teavm.javac.worker;
 
-import org.teavm.jso.JSProperty;
+import org.teavm.jso.JSClass;
+import org.teavm.jso.JSExport;
 
-public interface TeaVMDiagnosticMessage extends WorkerMessage {
-    @JSProperty
-    String getSeverity();
+@JSClass(transparent = true)
+public final class ListenerRegistration {
+    private final Runnable action;
+    private boolean destroyed;
 
-    @JSProperty
-    void setSeverity(String severity);
+    ListenerRegistration(Runnable action) {
+        this.action = action;
+    }
 
-    @JSProperty
-    String getFileName();
-
-    @JSProperty
-    void setFileName(String fileName);
-
-    @JSProperty
-    int getLineNumber();
-
-    @JSProperty
-    void setLineNumber(int lineNumber);
-
-    @JSProperty
-    String getText();
-
-    @JSProperty
-    void setText(String text);
+    @JSExport
+    public void destroy() {
+        if (!destroyed) {
+            destroyed = true;
+            action.run();
+        }
+    }
 }

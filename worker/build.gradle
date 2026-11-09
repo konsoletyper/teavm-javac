@@ -1,0 +1,14 @@
+plugins {
+    id "java"
+    alias libs.plugins.teavm
+}
+
+dependencies {
+    implementation libs.teavm.jso.apis
+}
+
+teavm.wasmGC {
+    mainClass = "org.teavm.javac.worker.WorkerClientLib"
+    targetFileName = "worker-client.wasm"
+    modularRuntime = true
+}

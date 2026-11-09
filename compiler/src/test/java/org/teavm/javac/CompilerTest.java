@@ -25,24 +25,30 @@ import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 
 /**
  * Each test method corresponds to a subdirectory of the cases directory ({@code src/test/cases}). The directory
  * contains Java sources (with {@code Main} as the main class) and {@code expected.txt} with the expected stdout.
+ *
+ * <p>Subclasses choose the harness script, i.e. the way the compiler is invoked in the browser.</p>
  */
-class CompilerTest {
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+abstract class CompilerTest {
     private static final String MAIN_CLASS = "Main";
-    private static CompilerTestHarness harness;
+    private CompilerTestHarness harness;
+
+    protected abstract String harnessScript();
 
     @BeforeAll
-    static void startHarness() {
+    void startHarness() {
         var harnessDir = new File(System.getProperty("teavm.javac.test.harnessDir", "build/test-harness"));
         var browser = System.getProperty("teavm.javac.test.browser", "browser-chrome");
-        harness = new CompilerTestHarness(harnessDir, browser);
+        harness = new CompilerTestHarness(harnessDir, harnessScript(), browser);
     }
 
     @AfterAll
-    static void stopHarness() {
+    void stopHarness() {
         if (harness != null) {
             harness.close();
             harness = null;
@@ -119,7 +125,7 @@ class CompilerTest {
         runCase("strings");
     }
 
-    private static void runCase(String name) throws IOException {
+    private void runCase(String name) throws IOException {
         var casesDir = Path.of(System.getProperty("teavm.javac.test.casesDir", "src/test/cases"));
         var dir = casesDir.resolve(name);
         var result = harness.run(collectSources(dir), MAIN_CLASS);

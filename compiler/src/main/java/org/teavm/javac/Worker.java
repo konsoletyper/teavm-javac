@@ -19,6 +19,7 @@ package org.teavm.javac;
 import java.io.File;
 import java.io.IOException;
 import java.util.function.Consumer;
+import org.teavm.javac.protocol.CompilationOptions;
 import org.teavm.javac.protocol.CompilationResultMessage;
 import org.teavm.javac.protocol.CompileMessage;
 import org.teavm.javac.protocol.CompilerDiagnosticMessage;
@@ -30,6 +31,7 @@ import org.teavm.javac.protocol.WorkerMessage;
 import org.teavm.jso.ajax.XMLHttpRequest;
 import org.teavm.jso.browser.Window;
 import org.teavm.jso.core.JSArray;
+import org.teavm.jso.JSObject;
 import org.teavm.jso.core.JSBoolean;
 import org.teavm.jso.core.JSObjects;
 import org.teavm.jso.core.JSPromise;
@@ -41,8 +43,8 @@ import org.teavm.vm.TeaVMPhase;
 
 public final class Worker {
     private boolean isBusy;
-    private final String SOURCE_FILE_NAME = "Main.java";
-    private String mainClass;
+    private static final String SOURCE_FILE_NAME = "Main.java";
+    private static final String DEFAULT_OUTPUT_NAME = "app";
     private final Compiler compiler;
 
     Worker(Compiler compiler) {
@@ -104,19 +106,21 @@ public final class Worker {
     }
 
     private void compileAll(CompileMessage request, Runnable done) throws IOException {
-        createSourceFile(request.getText());
+        createSourceFiles(request);
 
         CompilationResultMessage response = JSObjects.createWithoutProto();
         response.setId(request.getId());
         response.setCommand("compilation-complete");
 
-        if (doCompile(request) && detectMainClass(request)) {
-            generateWebAssembly(request.getId()).then(value -> {
+        var options = createOptions(request.getOptions());
+        var outputName = options.getOutputName().stringValue();
+        if (doCompile(request) && resolveMainClass(request, options)) {
+            generateWebAssembly(request.getId(), (WebAssemblyCompilationOptions) options).then(value -> {
                 if (!value.booleanValue()) {
                     response.setStatus("errors");
                 } else {
                     response.setStatus("successful");
-                    response.setScript(readResultingFile());
+                    response.setScript(readResultingFile(outputName));
                 }
                 Window.worker().postMessage(response);
                 return null;
@@ -198,16 +202,13 @@ public final class Worker {
     }
 
     private void handleTeaVMDiagnostic(TeaVMDiagnostic diagnostic, String requestId) {
-        CompilerDiagnosticMessage response = JSObjects.createWithoutProto();
+        TeaVMDiagnosticMessage response = JSObjects.createWithoutProto();
         response.setCommand("diagnostic");
         response.setId(requestId);
 
         response.setSeverity(diagnostic.getSeverity());
         response.setFileName(diagnostic.getFileName());
-
         response.setLineNumber(diagnostic.getLineNumber());
-        response.setColumnNumber(0);
-
         response.setMessage(diagnostic.getMessage());
 
         Window.worker().postMessage(response);
@@ -216,57 +217,60 @@ public final class Worker {
     private long lastPhaseTime = System.currentTimeMillis();
     private TeaVMPhase lastPhase;
 
-    private boolean detectMainClass(WorkerMessage request) throws IOException {
+    private boolean resolveMainClass(WorkerMessage request, CompilationOptions options) throws IOException {
+        if (isDefined(options.getMainClass())) {
+            return true;
+        }
         var candidates = compiler.detectMainClasses();
         if (candidates.length != 1) {
             var text = candidates.length == 0 ? "Main method not found" : "Multiple main methods found";
             TeaVMDiagnosticMessage message = JSObjects.createWithoutProto();
             message.setId(request.getId());
             message.setCommand("diagnostic");
-            message.setSeverity("ERROR");
-            message.setText(text);
+            message.setSeverity("error");
+            message.setMessage(text);
             message.setFileName(null);
+            message.setLineNumber(-1);
             Window.worker().postMessage(message);
             return false;
         }
 
-        mainClass = candidates[0];
-        mainClass = mainClass.replace('/', '.');
+        options.setMainClass(JSString.valueOf(candidates[0].replace('/', '.')));
         return true;
     }
 
-    private JSPromise<JSBoolean> generateWebAssembly(String requestId) {
-        var options = new WebAssemblyCompilationOptions() {
-            @Override
-            public JSString getOutputName() {
-                return JSString.valueOf("app");
-            }
+    private static CompilationOptions createOptions(CompilationOptions requestOptions) {
+        CompilationOptions options = JSObjects.createWithoutProto();
+        options.setOutputName(JSString.valueOf(DEFAULT_OUTPUT_NAME));
+        if (!isDefined(requestOptions)) {
+            return options;
+        }
+        if (isDefined(requestOptions.getOutputName())) {
+            options.setOutputName(requestOptions.getOutputName());
+        }
+        if (isDefined(requestOptions.getMainClass())) {
+            options.setMainClass(requestOptions.getMainClass());
+        }
+        if (isDefined(requestOptions.getStrictMode())) {
+            options.setStrictMode(requestOptions.getStrictMode());
+        }
+        if (isDefined(requestOptions.getObfuscated())) {
+            options.setObfuscated(requestOptions.getObfuscated());
+        }
+        if (isDefined(requestOptions.getAssertionsRemoved())) {
+            options.setAssertionsRemoved(requestOptions.getAssertionsRemoved());
+        }
+        if (isDefined(requestOptions.getAsyncEnabled())) {
+            options.setAsyncEnabled(requestOptions.getAsyncEnabled());
+        }
+        return options;
+    }
 
-            @Override
-            public JSString getMainClass() {
-                return JSString.valueOf(mainClass);
-            }
+    private static boolean isDefined(JSObject value) {
+        return value != null && !JSObjects.isUndefined(value);
+    }
 
-            @Override
-            public JSBoolean getStrictMode() {
-                return JSBoolean.valueOf(true);
-            }
-
-            @Override
-            public JSBoolean getObfuscated() {
-                return JSBoolean.valueOf(true);
-            }
-
-            @Override
-            public JSBoolean getAssertionsRemoved() {
-                return JSBoolean.valueOf(false);
-            }
-
-            @Override
-            public JSBoolean getAsyncEnabled() {
-                return JSBoolean.valueOf(true);
-            }
-        };
+    private JSPromise<JSBoolean> generateWebAssembly(String requestId, WebAssemblyCompilationOptions options) {
         var reg = compiler.onDiagnostic(diagnostic -> handleTeaVMDiagnostic((TeaVMDiagnostic) diagnostic, requestId));
         try {
             return compiler.generateWebAssembly(options).onSettled(() -> {
@@ -325,15 +329,21 @@ public final class Worker {
         });
     }
 
-    private void createSourceFile(String content) {
-        compiler.addSourceFile(SOURCE_FILE_NAME, content);
+    private void createSourceFiles(CompileMessage request) {
+        compiler.clearSourceFiles();
+        compiler.clearOutputFiles();
+        var files = request.getFiles();
+        for (var i = 0; i < files.getLength(); ++i) {
+            var file = files.get(i);
+            compiler.addSourceFile(file.getPath(), file.getContent());
+        }
     }
 
     private static void log(String message) {
         System.out.println(message);
     }
 
-    private Int8Array readResultingFile() {
-        return compiler.getWebAssemblyOutputFile("app.wasm");
+    private Int8Array readResultingFile(String outputName) {
+        return compiler.getWebAssemblyOutputFile(outputName + ".wasm");
     }
 }

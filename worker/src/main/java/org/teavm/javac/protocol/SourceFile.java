@@ -1,5 +1,5 @@
 /*
- *  Copyright 2017 Alexey Andreev.
+ *  Copyright 2026 Alexey Andreev.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,12 +16,19 @@
 
 package org.teavm.javac.protocol;
 
+import org.teavm.jso.JSObject;
 import org.teavm.jso.JSProperty;
 
-public interface CompileMessage extends WorkerMessage {
+public interface SourceFile extends JSObject {
     @JSProperty
-    String getText();
+    String getPath();
 
     @JSProperty
-    void setText(String text);
+    void setPath(String path);
+
+    @JSProperty
+    String getContent();
+
+    @JSProperty
+    void setContent(String content);
 }
