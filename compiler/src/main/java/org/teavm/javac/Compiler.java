@@ -16,6 +16,8 @@
 
 package org.teavm.javac;
 
+import com.sun.source.util.Plugin;
+import com.sun.tools.javac.api.BasicJavacTask;
 import com.sun.tools.javac.main.JavaCompiler;
 import com.sun.tools.javac.util.Context;
 import java.io.ByteArrayInputStream;
@@ -45,6 +47,7 @@ import org.teavm.jso.core.JSObjects;
 import org.teavm.jso.core.JSPromise;
 import org.teavm.jso.typedarrays.Int8Array;
 import org.teavm.vm.MemoryBuildTarget;
+import org.teavm.vm.spi.TeaVMPlugin;
 import static com.sun.tools.javac.comp.CompileStates.CompileState;
 
 @JSClass(name = "Compiler")
@@ -54,6 +57,8 @@ public final class Compiler {
     private final Map<String, FileData> sdkFiles = new LinkedHashMap<>();
     private final Map<String, FileData> outputFiles = new LinkedHashMap<>();
     private final MemoryBuildTarget wasmOutput = new MemoryBuildTarget();
+    private final List<Plugin> javacPlugins = new ArrayList<>();
+    private final List<TeaVMPlugin> teavmPlugins = new ArrayList<>();
     private SimpleJavaCompiler compiler;
     private List<DiagnosticListenerRegistration> diagnosticListeners = new ArrayList<>();
     private ByteArrayResourceProvider teavmClasslib;
@@ -61,6 +66,14 @@ public final class Compiler {
     private boolean wasmCompilationInProgress;
 
     Compiler() {
+    }
+
+    public void addJavacPlugin(Plugin plugin) {
+        javacPlugins.add(plugin);
+    }
+
+    public void addTeaVMPlugin(TeaVMPlugin plugin) {
+        teavmPlugins.add(plugin);
     }
 
     @JSExport
@@ -266,6 +279,7 @@ public final class Compiler {
         teavmCompiler.setAssertionsRemoved(assertionsRemoved);
         teavmCompiler.setAsyncEnabled(asyncEnabled);
         teavmCompiler.setBuildTarget(wasmOutput);
+        teavmCompiler.setPlugins(teavmPlugins);
         wasmCompilationInProgress = true;
         return new JSPromise<>((resolveFunc, rejectFunc) -> {
             try {
@@ -323,6 +337,10 @@ public final class Compiler {
         context.put(DiagnosticListener.class, new DiagnosticListenerImpl(diagnosticListeners));
         var fileManager = new FileManagerImpl(sourceFiles, classFiles, sdkFiles, outputFiles);
         context.put(JavaFileManager.class, fileManager);
+        var task = BasicJavacTask.instance(context);
+        for (var plugin : javacPlugins) {
+            plugin.init(task);
+        }
         compiler = new SimpleJavaCompiler(context);
         compiler.prepare();
     }
