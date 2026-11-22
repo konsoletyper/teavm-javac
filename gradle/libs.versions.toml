@@ -1,6 +1,6 @@
 [versions]
 
-teavm = "0.17.0-SNAPSHOT"
+teavm = "0.17.0"
 asm = "9.8"
 junit-jupiter = "5.11.4"
 
